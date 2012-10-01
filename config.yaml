@@ -1,0 +1,9 @@
+options:
+  fsid:
+    type: string
+    description: |
+      fsid of our cluster
+  osd-devices:
+    default: ["/dev/sdb", "/dev/sdc", "/dev/sdd", "/dev/sde"]
+    description: |
+      the devices to format and set up as osd volumes

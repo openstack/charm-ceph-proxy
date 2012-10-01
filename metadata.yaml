@@ -1,0 +1,4 @@
+name: ceph-brolin
+summary: distributed storage
+description: |
+  This charm deploys Ceph.
