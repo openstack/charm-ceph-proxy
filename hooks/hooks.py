@@ -54,12 +54,15 @@ def config_changed():
 
 def get_mon_hosts():
     hosts = []
-    hosts.append(socket.gethostbyname(utils.unit_get('private-address')))
+    hosts.append(socket.gethostbyname(utils.unit_get('private-address'))
+                 + ':6789')
 
     for relid in utils.relation_ids("mon"):
         for unit in utils.relation_list(relid):
-            hosts.append(socket.gethostbyname(
-                    utils.relation_get('private-address', unit, relid)))
+            hosts.append(
+                socket.gethostbyname(utils.relation_get('private-address',
+                                                        unit, relid))
+                + ':6789')
 
     return hosts
 
@@ -68,12 +71,18 @@ def mon_relation():
     emit_cephconf()
     utils.juju_log('INFO', 'End mon-relation hook.')
 
+def upgrade_charm():
+    utils.juju_log('INFO', 'Begin upgrade-charm hook.')
+    emit_cephconf()
+    utils.juju_log('INFO', 'End upgrade-charm hook.')
+
 hooks = {
-    'mon-relation-joined': mon_relation,
+    'config-changed': config_changed,
+    'install': install,
     'mon-relation-changed': mon_relation,
     'mon-relation-departed': mon_relation,
-    'install': install,
-    'config-changed': config_changed,
+    'mon-relation-joined': mon_relation,
+    'upgrade-charm': upgrade_charm,
 }
 
 hook = os.path.basename(sys.argv[0])
