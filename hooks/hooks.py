@@ -11,11 +11,31 @@ import os
 import subprocess
 import sys
 
+import ceph
+import utils
+
 def install():
-    print "install"
+    utils.juju_log('INFO', 'Begin install hook.')
+    utils.configure_source()
+    utils.install('ceph')
+
+    # TODO: Install the upstart scripts.
+    utils.juju_log('INFO', 'End install hook.')
 
 def config_changed():
-    print "config_changed"
+    utils.juju_log('INFO', 'Begin config-changed hook.')
+    fsid = utils.config_get('fsid')
+    if fsid == "":
+        utils.juju_log('CRITICAL', 'No fsid supplied, cannot proceed.')
+        sys.exit(1)
+
+    monitor_secret = utils.config_get('monitor-secret')
+    if monitor_secret == "":
+        utils.juju_log('CRITICAL', 'No monitor-secret supplied, cannot proceed.')
+        sys.exit(1)
+
+    osd_devices = utils.config_get('osd-devices')
+    utils.juju_log('INFO', 'End config-changed hook.')
 
 def mon_relation():
     print "mon_relation"
@@ -32,8 +52,7 @@ hook = os.path.basename(sys.argv[0])
 
 try:
     hooks[hook]()
-except:
-    subprocess.call(['juju-log', '-l', 'INFO',
-                     "This charm doesn't know how to handle '%s'." % hook])
+except KeyError:
+    utils.juju_log('INFO', "This charm doesn't know how to handle '%s'." % hook)
 
 sys.exit(0)

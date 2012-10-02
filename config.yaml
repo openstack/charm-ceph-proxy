@@ -14,3 +14,6 @@ options:
       this value will become the "mon." key
       to generate a suitable value, use
       ceph-authtool /dev/stdout --name=mon. --gen-key
+  source:
+    type: string
+    default: ppa:ceph-ubuntu/dev
