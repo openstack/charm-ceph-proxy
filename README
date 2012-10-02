@@ -1,0 +1,18 @@
+This charm deploys a Ceph cluster.
+
+It uses the new-style Ceph deployment as reverse-engineered from the
+Chef cookbook at https://github.com/ceph/ceph-cookbooks
+
+This charm is currently deliberately inflexible and potentially
+destructive.  It is designed to deploy on exactly three machines.
+Each machine will run mon and osd.
+
+The osds use so-called "OSD hotplugging".  ceph-disk-prepare is used
+to create the filesystems with a special GPT partition type.  udev is
+set up to mount such filesystems and start the osd daemons as their
+storage becomes visible to the system (or after "udevadm trigger").
+
+The Chef cookbook above performs some extra steps to generate an OSD
+bootstrapping key and propagate it to the other nodes in the cluster.
+Since all our OSDs run on nodes that also run mon, we don't need this
+and did not implement it.

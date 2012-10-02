@@ -4,6 +4,13 @@ options:
     description: |
       fsid of our cluster
   osd-devices:
-    default: ["/dev/sdb", "/dev/sdc", "/dev/sdd", "/dev/sde"]
+    type: string
+    default: /dev/sdb /dev/sdc /dev/sdd /dev/sde
     description: |
       the devices to format and set up as osd volumes
+  monitor-secret:
+    type: string
+    description: |
+      this value will become the "mon." key
+      to generate a suitable value, use
+      ceph-authtool /dev/stdout --name=mon. --gen-key
