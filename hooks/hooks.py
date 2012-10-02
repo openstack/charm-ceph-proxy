@@ -24,6 +24,9 @@ def install():
 
 def config_changed():
     utils.juju_log('INFO', 'Begin config-changed hook.')
+
+    utils.juju_log('INFO', 'Monitor hosts are ' + repr(get_mon_hosts()))
+
     fsid = utils.config_get('fsid')
     if fsid == "":
         utils.juju_log('CRITICAL', 'No fsid supplied, cannot proceed.')
@@ -36,6 +39,16 @@ def config_changed():
 
     osd_devices = utils.config_get('osd-devices')
     utils.juju_log('INFO', 'End config-changed hook.')
+
+def get_mon_hosts():
+    hosts = []
+    hosts.append(utils.unit_get('private-address'))
+
+    for relid in utils.relation_ids("mon"):
+        for unit in utils.relation_list(relid):
+            hosts.append(utils.relation_get('private-address', unit, relid))
+
+    return hosts
 
 def mon_relation():
     print "mon_relation"
