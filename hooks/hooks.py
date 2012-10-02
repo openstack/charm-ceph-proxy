@@ -9,6 +9,7 @@
 
 import os
 import subprocess
+import socket
 import sys
 
 import ceph
@@ -42,11 +43,12 @@ def config_changed():
 
 def get_mon_hosts():
     hosts = []
-    hosts.append(utils.unit_get('private-address'))
+    hosts.append(socket.gethostbyname(utils.unit_get('private-address')))
 
     for relid in utils.relation_ids("mon"):
         for unit in utils.relation_list(relid):
-            hosts.append(utils.relation_get('private-address', unit, relid))
+            hosts.append(socket.gethostbyname(
+                    utils.relation_get('private-address', unit, relid)))
 
     return hosts
 
