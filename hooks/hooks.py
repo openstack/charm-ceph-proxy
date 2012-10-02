@@ -23,6 +23,14 @@ def install():
     # TODO: Install the upstart scripts.
     utils.juju_log('INFO', 'End install hook.')
 
+def emit_cephconf():
+    cephcontext = {
+        'mon_hosts': ' '.join(get_mon_hosts())
+        }
+
+    with open('/etc/ceph/ceph.conf', 'w') as cephconf:
+        cephconf.write(utils.render_template('ceph.conf', cephcontext))
+
 def config_changed():
     utils.juju_log('INFO', 'Begin config-changed hook.')
 
@@ -39,6 +47,9 @@ def config_changed():
         sys.exit(1)
 
     osd_devices = utils.config_get('osd-devices')
+
+    emit_cephconf()
+
     utils.juju_log('INFO', 'End config-changed hook.')
 
 def get_mon_hosts():
@@ -53,7 +64,9 @@ def get_mon_hosts():
     return hosts
 
 def mon_relation():
-    print "mon_relation"
+    utils.juju_log('INFO', 'Begin mon-relation hook.')
+    emit_cephconf()
+    utils.juju_log('INFO', 'End mon-relation hook.')
 
 hooks = {
     'mon-relation-joined': mon_relation,
