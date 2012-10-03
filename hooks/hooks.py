@@ -7,25 +7,32 @@
 #  Paul Collins <paul.collins@canonical.com>
 #
 
+import glob
 import os
 import subprocess
+import shutil
 import socket
 import sys
 
 import ceph
 import utils
 
+def install_upstart_scripts():
+    for x in glob.glob('files/upstart/*.conf'):
+        shutil.copy(x, '/etc/init/') 
+
 def install():
     utils.juju_log('INFO', 'Begin install hook.')
     utils.configure_source()
     utils.install('ceph')
 
-    # TODO: Install the upstart scripts.
+    install_upstart_scripts()
+
     utils.juju_log('INFO', 'End install hook.')
 
 def emit_cephconf():
     cephcontext = {
-        'mon_hosts': ' '.join(get_mon_hosts().sort()),
+        'mon_hosts': ' '.join(get_mon_hosts()),
         'fsid': utils.config_get('fsid'),
         }
 
@@ -65,6 +72,7 @@ def get_mon_hosts():
                                                         unit, relid))
                 + ':6789')
 
+    hosts.sort()
     return hosts
 
 def mon_relation():
@@ -75,6 +83,7 @@ def mon_relation():
 def upgrade_charm():
     utils.juju_log('INFO', 'Begin upgrade-charm hook.')
     emit_cephconf()
+    install_upstart_scripts()
     utils.juju_log('INFO', 'End upgrade-charm hook.')
 
 hooks = {

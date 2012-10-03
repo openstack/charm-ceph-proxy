@@ -104,7 +104,7 @@ def relation_get(attribute,unit=None,rid=None):
         cmd.append(unit)
     return subprocess.check_output(cmd).strip()
 
-def relation_set(*kwargs):
+def relation_set(**kwargs):
     cmd = [
         "relation-set"
         ]
