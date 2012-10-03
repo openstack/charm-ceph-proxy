@@ -86,7 +86,7 @@ def bootstrap_monitor_cluster():
             try:
                 subprocess.check_call(['ceph-authtool', keyring,
                                        '--create-keyring' '--name=mon.'
-                                       "--add-key=" % secret,
+                                       "--add-key=%s" % secret,
                                        '--cap', 'mon', 'allow *'])
 
                 subprocess.check_call(['ceph-mon', '--mkfs',
