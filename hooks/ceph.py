@@ -21,7 +21,12 @@ def is_quorum():
 	"/var/run/ceph/ceph-mon.%s.asok" % os.uname()[1],
         "mon_status"
         ]
-    result = json.loads(subprocess.check_output(cmd))
+
+    try:
+        result = json.loads(subprocess.check_output(cmd))
+    except CalledProcessError:
+        return False
+
     if result['state'] in QUORUM:
         return True
     else:
