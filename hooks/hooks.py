@@ -25,7 +25,8 @@ def install():
 
 def emit_cephconf():
     cephcontext = {
-        'mon_hosts': ' '.join(get_mon_hosts())
+        'mon_hosts': ' '.join(get_mon_hosts().sort()),
+        'fsid': utils.config_get('fsid'),
         }
 
     with open('/etc/ceph/ceph.conf', 'w') as cephconf:
