@@ -11,6 +11,7 @@
 import subprocess
 import os
 import sys
+import socket
 
 def install (*pkgs):
     cmd = [
@@ -128,3 +129,6 @@ def config_get(attribute):
 
 def juju_log(level, message):
     subprocess.call(['juju-log', '-l', level, message])
+
+def get_unit_hostname():
+    return socket.gethostname()

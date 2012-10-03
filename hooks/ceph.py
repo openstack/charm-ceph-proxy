@@ -11,20 +11,21 @@ import json
 import os
 import subprocess
 import time
+import utils
 
-QUORUM = [ 'leader', 'peon' ] 
+QUORUM = [ 'leader', 'peon' ]
 
 def is_quorum():
     cmd = [
         "ceph",
         "--admin-daemon",
-	"/var/run/ceph/ceph-mon.%s.asok" % os.uname()[1],
+        "/var/run/ceph/ceph-mon.%s.asok" % utils.get_unit_hostname(),
         "mon_status"
         ]
 
     try:
         result = json.loads(subprocess.check_output(cmd))
-    except CalledProcessError:
+    except subprocess.CalledProcessError:
         return False
 
     if result['state'] in QUORUM:
