@@ -25,6 +25,7 @@ def install():
     utils.juju_log('INFO', 'Begin install hook.')
     utils.configure_source()
     utils.install('ceph')
+    utils.install('gdisk') # for ceph-disk-prepare
 
     install_upstart_scripts()
 
@@ -54,9 +55,11 @@ def config_changed():
         utils.juju_log('CRITICAL', 'No monitor-secret supplied, cannot proceed.')
         sys.exit(1)
 
-    osd_devices = utils.config_get('osd-devices')
-
     emit_cephconf()
+
+    if ceph.is_quorum():
+        for dev in utils.config_get('osd-devices').split(' '):
+            osdize_and_activate(dev)
 
     utils.juju_log('INFO', 'End config-changed hook.')
 
@@ -103,6 +106,21 @@ def bootstrap_monitor_cluster():
         finally:
             os.unlink(keyring)
 
+def osdize_and_activate(dev):
+    ceph.wait_for_quorum()
+
+    # XXX hack for instances
+    subprocess.call(['umount', '/mnt'])
+
+    if subprocess.call(['grep', '-wqs', dev + '1', '/proc/mounts']) == 0:
+        utils.juju_log('INFO', "Looks like %s is in use, skipping." % dev)
+        return True
+
+    subprocess.call(['ceph-disk-prepare', dev])
+
+    subprocess.call(['udevadm', 'trigger',
+                     '--subsystem-match=block', '--action=add'])
+
 def mon_relation():
     utils.juju_log('INFO', 'Begin mon-relation hook.')
     emit_cephconf()
@@ -110,6 +128,10 @@ def mon_relation():
     moncount = int(utils.config_get('monitor-count'))
     if len(get_mon_hosts()) == moncount:
         bootstrap_monitor_cluster()
+
+        ceph.wait_for_quorum()
+        for dev in utils.config_get('osd-devices').split(' '):
+            osdize_and_activate(dev)
     else:
         utils.juju_log('INFO',
                        "Not enough mons (%d), punting." % len(get_mon_hosts()))
@@ -120,6 +142,7 @@ def upgrade_charm():
     utils.juju_log('INFO', 'Begin upgrade-charm hook.')
     emit_cephconf()
     install_upstart_scripts()
+    utils.install('gdisk') # for ceph-disk-prepare
     utils.juju_log('INFO', 'End upgrade-charm hook.')
 
 hooks = {
