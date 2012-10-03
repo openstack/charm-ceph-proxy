@@ -75,9 +75,42 @@ def get_mon_hosts():
     hosts.sort()
     return hosts
 
+def bootstrap_monitor_cluster():
+    hostname = os.uname()[1]
+    done = "/var/lib/ceph/mon/ceph-%s/done" % hostname
+    secret = utils.config_get('monitor-secret')
+    keyring = "/var/lib/ceph/tmp/%s.mon.keyring" % hostname
+
+    try:
+        with os.fdopen(os.open(done, os.O_WRONLY | os.O_CREAT | os.O_EXCL)) as d:
+            try:
+                subprocess.check_call(['ceph-authtool', keyring,
+                                       '--create-keyring' '--name=mon.'
+                                       "--add-key=" % secret,
+                                       '--cap', 'mon', 'allow *'])
+
+                subprocess.check_call(['ceph-mon', '--mkfs',
+                                       '-i', hostname,
+                                       '--keyring', keyring])
+            except:
+                os.unlink(done)
+                os.unlink(keyring)
+                raise
+        subprocess.check_call(['start', 'ceph-mon-all-starter'])
+    except OSError:
+        utils.juju_log('INFO', 'bootstrap_monitor_cluster: mon already initialized, getting on with life.')
+
 def mon_relation():
     utils.juju_log('INFO', 'Begin mon-relation hook.')
     emit_cephconf()
+
+    moncount = utils.config_get('monitor-count')
+    if len(get_mon_hosts()) == moncount:
+        bootstrap_monitor_cluster()
+    else:
+        utils.juju_log('INFO',
+                       "Not enough mons (%d), punting." % len(get_mon_hosts()))
+
     utils.juju_log('INFO', 'End mon-relation hook.')
 
 def upgrade_charm():

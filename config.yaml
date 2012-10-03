@@ -8,6 +8,13 @@ options:
     default: /dev/sdb /dev/sdc /dev/sdd /dev/sde
     description: |
       the devices to format and set up as osd volumes
+  monitor-count:
+    type: int
+    default: 3
+    description: |
+      how many nodes to wait for before trying to create the monitor cluster
+      this number needs to be odd, and more than three is a waste except for
+      very large clusters
   monitor-secret:
     type: string
     description: |
