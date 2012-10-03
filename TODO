@@ -1,0 +1,8 @@
+== Minor ==
+
+  * fix tunables (http://tracker.newdream.net/issues/2210)
+  * more than 192 PGs
+
+== Major ==
+
+  * deploy more than 3 OSD hosts
