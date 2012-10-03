@@ -79,7 +79,7 @@ def get_mon_hosts():
     return hosts
 
 def bootstrap_monitor_cluster():
-    hostname = os.uname()[1]
+    hostname = utils.get_unit_hostname()
     done = "/var/lib/ceph/mon/ceph-%s/done" % hostname
     secret = utils.config_get('monitor-secret')
     keyring = "/var/lib/ceph/tmp/%s.mon.keyring" % hostname
@@ -107,8 +107,6 @@ def bootstrap_monitor_cluster():
             os.unlink(keyring)
 
 def osdize_and_activate(dev):
-    ceph.wait_for_quorum()
-
     # XXX hack for instances
     subprocess.call(['umount', '/mnt'])
 
@@ -116,10 +114,10 @@ def osdize_and_activate(dev):
         utils.juju_log('INFO', "Looks like %s is in use, skipping." % dev)
         return True
 
-    subprocess.call(['ceph-disk-prepare', dev])
-
-    subprocess.call(['udevadm', 'trigger',
-                     '--subsystem-match=block', '--action=add'])
+    if os.path.exists(dev):
+        subprocess.call(['ceph-disk-prepare', dev])
+        subprocess.call(['udevadm', 'trigger',
+                         '--subsystem-match=block', '--action=add'])
 
 def mon_relation():
     utils.juju_log('INFO', 'Begin mon-relation hook.')
