@@ -5,7 +5,6 @@
 # Authors:
 #  James Page <james.page@canonical.com>
 #
-# Taken from lp:~james-page/charms/precise/ganglia/python-refactor
 #
 
 import subprocess
