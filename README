@@ -1,18 +1,23 @@
-This charm deploys a Ceph cluster.
+This charm deploys a Ceph cluster.  It is currently deliberately
+inflexible and potentially destructive.  It is designed to deploy on
+exactly three machines.  Each machine will run mon and osd.  cephx is
+not enabled and sufficient keys are not yet deployed for it to be
+enbled after the fact.
 
-It uses the new-style Ceph deployment as reverse-engineered from the
-Chef cookbook at https://github.com/ceph/ceph-cookbooks
+We use new-style Ceph deployment, as reverse-engineered from the Chef
+cookbook at https://github.com/ceph/ceph-cookbooks, although we
+selected a different strategy to form the monitor cluster.  Since we
+don't know the names *or* addresses of the machines in advance, we use
+the relation-joined hook to wait for all three nodes to come up, and
+then write their addresses to ceph.conf in the "mon host" parameter.
+After we initialize the monitor cluster a quorum forms quickly, and
+OSD bringup proceeds.
 
-This charm is currently deliberately inflexible and potentially
-destructive.  It is designed to deploy on exactly three machines.
-Each machine will run mon and osd.
+See http://ceph.com/docs/master/dev/mon-bootstrap/ for more
+information on Ceph monitor cluster deployment strategies and
+pitfalls.
 
 The osds use so-called "OSD hotplugging".  ceph-disk-prepare is used
-to create the filesystems with a special GPT partition type.  udev is
-set up to mount such filesystems and start the osd daemons as their
+to create the filesystems with a special GPT partition type.  upstart
+is set up to mount such filesystems and start the osd daemons as their
 storage becomes visible to the system (or after "udevadm trigger").
-
-The Chef cookbook above performs some extra steps to generate an OSD
-bootstrapping key and propagate it to the other nodes in the cluster.
-Since all our OSDs run on nodes that also run mon, we don't need this
-and did not implement it.

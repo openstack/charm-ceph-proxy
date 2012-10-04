@@ -6,3 +6,4 @@
 == Major ==
 
   * deploy more than 3 OSD hosts
+  * deploy keys so that cephx can be used
