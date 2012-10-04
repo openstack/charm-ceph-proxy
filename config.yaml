@@ -2,25 +2,52 @@ options:
   fsid:
     type: string
     description: |
-      fsid of our cluster
-  osd-devices:
+      fsid of the ceph cluster. To generate a suitable value use `uuid`
+      .
+      This configuration element is mandatory and the service will fail on
+      install if it is not provided.
+  monitor-secret:
     type: string
-    default: /dev/sdb /dev/sdc /dev/sdd /dev/sde
     description: |
-      the devices to format and set up as osd volumes
+      This value will become the "mon." key. To generate a suitable value use:
+      .
+        ceph-authtool /dev/stdout --name=mon. --gen-key
+      .
+      This configuration element is mandatory and the service will fail on
+      install if it is not provided.
   monitor-count:
     type: int
     default: 3
     description: |
-      how many nodes to wait for before trying to create the monitor cluster
+      How many nodes to wait for before trying to create the monitor cluster
       this number needs to be odd, and more than three is a waste except for
-      very large clusters
-  monitor-secret:
+      very large clusters.
+  osd-devices:
     type: string
+    default: /dev/sdb /dev/sdc /dev/sdd /dev/sde
     description: |
-      this value will become the "mon." key
-      to generate a suitable value, use
-      ceph-authtool /dev/stdout --name=mon. --gen-key
+      The devices to format and set up as osd volumes.
+      .
+      These devices are the range of devices that will be checked for and
+      used across all service units.
   source:
     type: string
     default: ppa:ceph-ubuntu/dev
+    description: |
+      Optional configuration to support use of additional sources such as:
+      .
+        - ppa:myteam/ppa
+        - cloud:folsom-proposed
+        - http://my.archive.com/ubuntu main
+      .
+      The last option should be used in conjunction with the key configuration
+      option.
+      .
+      Note that a minimum ceph version of 0.48.2 is required for use with this
+      charm which is NOT provided by the packages in the main Ubuntu archive
+      for precise.
+  key:
+    type: string
+    description: |
+      Key ID to import to the apt keyring to support use with arbitary source
+      configuration from outside of Launchpad archives or PPA's.
