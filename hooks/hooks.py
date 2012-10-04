@@ -184,6 +184,6 @@ try:
     hooks[hook]()
 except KeyError:
     utils.juju_log('INFO',
-                   'This charm doesn't know how to handle '{}'.'.format(hook))
+                   "This charm doesn't know how to handle '{}'.".format(hook))
 
 sys.exit(0)

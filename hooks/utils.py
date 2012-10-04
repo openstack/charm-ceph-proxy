@@ -9,8 +9,6 @@
 #
 
 import subprocess
-import os
-import sys
 import socket
 
 
@@ -139,10 +137,6 @@ def config_get(attribute):
         attribute
         ]
     return subprocess.check_output(cmd).strip()
-
-
-def juju_log(level, message):
-    subprocess.call(['juju-log', '-l', level, message])
 
 
 def get_unit_hostname():
