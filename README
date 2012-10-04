@@ -38,38 +38,50 @@ cluster.
         each service unit and can be changed post ceph bootstrap using `juju set`.
         
 At a minimum you must provide a juju config file during initial deployment
-with the fsid and monitor-secret options:
+with the fsid and monitor-secret options (contents of cepy.yaml below):
 
-    ceph:
+    ceph-brolin:
         fsid: ecbb8960-0e21-11e2-b495-83a88f44db01 
         monitor-secret: AQD1P2xQiKglDhAA4NGUF5j38Mhq56qwz+45wg==
         osd-devices: /dev/vdb /dev/vdc /dev/vdd /dev/vde
         
 Specifying the osd-devices to use is also a good idea.
 
+Boot things up by using:
+
+    juju deploy -n 3 --config ceph.yaml ceph-brolin
+
 By default the ceph cluster will not bootstrap until 3 service units have been
 deployed and started; this is to ensure that a quorum is achieved prior to adding
-storage devices.    
+storage devices.
     
-Bootnotes
-=========
+Technical Bootnotes
+===================
 
-This charm uses the new-style Ceph deployment as reverse-engineered from the Chef
-cookbook at https://github.com/ceph/ceph-cookbooks.
+This charm is currently deliberately inflexible and potentially destructive.
+It is designed to deploy on exactly three machines. Each machine will run mon
+and osd.
 
-This charm is currently deliberately inflexible and potentially destructive.  It
-is designed to deploy on exactly three machines.
+This charm uses the new-style Ceph deployment as reverse-engineered from the
+Chef cookbook at https://github.com/ceph/ceph-cookbooks, although we selected
+a different strategy to form the monitor cluster.  Since we don't know the
+names *or* addresses of the machines in advance, we use the relation-joined
+hook to wait for all three nodes to come up, and then write their addresses
+to ceph.conf in the "mon host" parameter. After we initialize the monitor
+cluster a quorum forms quickly, and OSD bringup proceeds.
 
-Each machine will run mon and osd.
+The osds use so-called "OSD hotplugging".  ceph-disk-prepare is used to create
+the filesystems with a special GPT partition type.  udev is set up to mounti
+such filesystems and start the osd daemons as their storage becomes visible to
+the system (or after "udevadm trigger").
 
-The osds use so-called "OSD hotplugging".  ceph-disk-prepare is used to create the
-filesystems with a special GPT partition type.  udev is set up to mount such
-filesystems and start the osd daemons as their storage becomes visible to the
-system (or after "udevadm trigger").
+The Chef cookbook above performs some extra steps to generate an OSD
+bootstrapping key and propagate it to the other nodes in the cluster. Since
+all OSDs run on nodes that also run mon, we don't need this and did not
+implement it.
 
-The Chef cookbook above performs some extra steps to generate an OSD bootstrapping
-key and propagate it to the other nodes in the cluster. Since all our OSDs run on
-nodes that also run mon, we don't need this and did not implement it.
+The charm does not currently implement cephx and its explicitly turned off in
+the configuration generated for ceph.
 
-The charm does not currently implement cephx and its explicitly turned off in the
-configuration generated for ceph.
+See http://ceph.com/docs/master/dev/mon-bootstrap/ for more information on Ceph
+monitor cluster deployment strategies and pitfalls. 
