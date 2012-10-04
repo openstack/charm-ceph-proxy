@@ -8,18 +8,18 @@
 #
 
 import json
-import os
 import subprocess
 import time
 import utils
 
-QUORUM = [ 'leader', 'peon' ]
+QUORUM = ['leader', 'peon']
+
 
 def is_quorum():
     cmd = [
         "ceph",
         "--admin-daemon",
-        "/var/run/ceph/ceph-mon.%s.asok" % utils.get_unit_hostname(),
+        "/var/run/ceph/ceph-mon.{}.asok".format(utils.get_unit_hostname()),
         "mon_status"
         ]
 
@@ -33,6 +33,19 @@ def is_quorum():
     else:
         return False
 
+
 def wait_for_quorum():
     while not is_quorum():
         time.sleep(3)
+
+
+def add_bootstrap_hint(peer):
+    cmd = [
+        "ceph",
+        "--admin-daemon",
+        "/var/run/ceph/ceph-mon.{}.asok".format(utils.get_unit_hostname()),
+        "add_bootstrap_peer_hint",
+        peer
+        ]
+    # Ignore any errors for this call
+    subprocess.call(cmd)
