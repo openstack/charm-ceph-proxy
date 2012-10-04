@@ -1,5 +1,15 @@
-Copyright 2012 Canonical Ltd.
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0
+Comment: The licensing of this charm is aligned to upstream ceph
+ as the ceph upstart integration is distributed as part of the charm.
 
-Authors:
-	Paul Collins <paul.collins@canonocal.com>
-	James Page <james.page@canonical.com>
+Files: *
+Copyright: 2012, Canonical Ltd.
+License: LGPL-2.1
+
+Files: files/upstart/*
+Copyright: 2004-2010 by Sage Weil <sage@newdream.net>
+License: LGPL-2.1
+
+License: LGPL-2.1
+  On Debian GNU/Linux system you can find the complete text of the
+  LGPL-2.1 license in '/usr/share/common-licenses/LGPL-2.1'

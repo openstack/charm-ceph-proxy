@@ -1,7 +1,10 @@
 name: ceph-brolin
-summary: distributed storage
+summary: Highly scalable distributed storage
+maintainer: James Page <james.page@ubuntu.com>,
+  Paul Collins <paul.collins@canonical.com>
 description: |
-  This charm deploys Ceph.
+ Ceph is a distributed storage and network file system designed to provide
+ excellent performance, reliability, and scalability.
 peers:
   mon:
     interface: ceph-brolin
