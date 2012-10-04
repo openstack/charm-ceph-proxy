@@ -75,7 +75,7 @@ def expose(port, protocol='TCP'):
     subprocess.check_call(cmd)
 
 
-def juju_log(message, severity='INFO'):
+def juju_log(severity, message):
     cmd = [
         'juju-log',
         '--log-level', severity,
@@ -148,4 +148,4 @@ def get_host_ip(hostname=unit_get('private-address')):
         '+short',
         hostname
         ]
-    return subprocess.check_call(cmd).strip()
+    return subprocess.check_output(cmd).strip()
