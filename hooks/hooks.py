@@ -69,15 +69,15 @@ def config_changed():
 
 def get_mon_hosts():
     hosts = []
-    hosts.append(socket.gethostbyname(utils.unit_get('private-address'))
-                 + ':6789')
+    hosts.append('{}:6789'.format(utils.get_host_ip()))
 
     for relid in utils.relation_ids('mon'):
         for unit in utils.relation_list(relid):
             hosts.append(
-                socket.gethostbyname(utils.relation_get('private-address',
-                                                        unit, relid))
-                + ':6789')
+                '{}:6789'.format(utils.get_host_ip(
+                                    utils.relation_get('private-address',
+                                                       unit, relid)))
+                )
 
     hosts.sort()
     return hosts

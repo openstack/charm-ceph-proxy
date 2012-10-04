@@ -140,3 +140,12 @@ def config_get(attribute):
 
 def get_unit_hostname():
     return socket.gethostname()
+
+
+def get_host_ip(hostname=unit_get('private-address')):
+    cmd = [
+        'dig',
+        '+short',
+        hostname
+        ]
+    return subprocess.check_call(cmd).strip()
