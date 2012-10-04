@@ -2,7 +2,15 @@
 
   * fix tunables (http://tracker.newdream.net/issues/2210)
   * more than 192 PGs
+  * fixup data placement in crush to be host not osd driven
 
 == Major ==
 
   * deploy more than 3 OSD hosts
+  
+== Public Charm ==
+
+  * cephx support
+  * rel: remote OSD services (+bootstrap.osd keys for cephx)
+  * rel: remote MON clients (+client keys for cephx)
+  * rel: RADOS gateway (+client key for cephx)

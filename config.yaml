@@ -9,7 +9,7 @@ options:
   monitor-secret:
     type: string
     description: |
-      This value will become the "mon." key. To generate a suitable value use:
+      This value will become the mon. key. To generate a suitable value use:
       .
         ceph-authtool /dev/stdout --name=mon. --gen-key
       .
