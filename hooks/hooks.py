@@ -85,20 +85,6 @@ def get_mon_hosts():
     return hosts
 
 
-def get_mon_addresses():
-    hosts = []
-    hosts.append(socket.gethostbyname(utils.unit_get('private-address')))
-
-    for relid in utils.relation_ids('mon'):
-        for unit in utils.relation_list(relid):
-            hosts.append(
-                socket.gethostbyname(utils.relation_get('private-address',
-                                                        unit, relid)))
-
-    hosts.sort()
-    return hosts
-
-
 def bootstrap_monitor_cluster():
     hostname = utils.get_unit_hostname()
     done = '/var/lib/ceph/mon/ceph-{}/done'.format(hostname)
