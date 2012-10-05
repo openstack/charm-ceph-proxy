@@ -160,9 +160,6 @@ def mon_relation():
             osdize(dev)
         subprocess.call(['udevadm', 'trigger',
                          '--subsystem-match=block', '--action=add'])
-
-        for peer in get_mon_addresses():
-            ceph.add_bootstrap_hint(peer)
     else:
         utils.juju_log('INFO',
                        'Not enough mons ({}), punting.'.format(
