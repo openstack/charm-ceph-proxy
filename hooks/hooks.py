@@ -152,9 +152,6 @@ def mon_relation():
         ceph.wait_for_quorum()
         for dev in utils.config_get('osd-devices').split(' '):
             osdize_and_activate(dev)
-
-        for peer in get_mon_addresses():
-            ceph.add_bootstrap_hint(peer)
     else:
         utils.juju_log('INFO',
                        'Not enough mons ({}), punting.'.format(
