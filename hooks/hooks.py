@@ -169,21 +169,13 @@ def start():
                      '--subsystem-match=block', '--action=add'])
 
 
-hooks = {
-    'config-changed': config_changed,
-    'install': install,
-    'mon-relation-departed': mon_relation,
-    'mon-relation-joined': mon_relation,
-    'start': start,
-    'upgrade-charm': upgrade_charm,
-}
-
-hook = os.path.basename(sys.argv[0])
-
-try:
-    hooks[hook]()
-except KeyError:
-    utils.juju_log('INFO',
-                   "This charm doesn't know how to handle '{}'.".format(hook))
+utils.do_hooks({
+        'config-changed': config_changed,
+        'install': install,
+        'mon-relation-departed': mon_relation,
+        'mon-relation-joined': mon_relation,
+        'start': start,
+        'upgrade-charm': upgrade_charm,
+        })
 
 sys.exit(0)
