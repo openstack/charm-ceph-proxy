@@ -89,7 +89,7 @@ def relation_ids(relation):
         'relation-ids',
         relation
         ]
-    return subprocess.check_output(cmd).split()
+    return subprocess.check_output(cmd).split()  # IGNORE:E1103
 
 
 def relation_list(rid):
@@ -97,7 +97,7 @@ def relation_list(rid):
         'relation-list',
         '-r', rid,
         ]
-    return subprocess.check_output(cmd).split()
+    return subprocess.check_output(cmd).split()  # IGNORE:E1103
 
 
 def relation_get(attribute, unit=None, rid=None):
@@ -110,7 +110,7 @@ def relation_get(attribute, unit=None, rid=None):
     cmd.append(attribute)
     if unit:
         cmd.append(unit)
-    return subprocess.check_output(cmd).strip()
+    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
 
 
 def relation_set(**kwargs):
@@ -127,7 +127,7 @@ def unit_get(attribute):
         'unit-get',
         attribute
         ]
-    return subprocess.check_output(cmd).strip()
+    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
 
 
 def config_get(attribute):
@@ -135,7 +135,7 @@ def config_get(attribute):
         'config-get',
         attribute
         ]
-    return subprocess.check_output(cmd).strip()
+    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
 
 
 def get_unit_hostname():
@@ -148,4 +148,4 @@ def get_host_ip(hostname=unit_get('private-address')):
         '+short',
         hostname
         ]
-    return subprocess.check_output(cmd).strip()
+    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
