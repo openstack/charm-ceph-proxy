@@ -62,7 +62,9 @@ def config_changed():
 
     if ceph.is_quorum():
         for dev in utils.config_get('osd-devices').split(' '):
-            osdize_and_activate(dev)
+            osdize(dev)
+        subprocess.call(['udevadm', 'trigger',
+                         '--subsystem-match=block', '--action=add'])
 
     utils.juju_log('INFO', 'End config-changed hook.')
 
@@ -127,7 +129,7 @@ def bootstrap_monitor_cluster():
             os.unlink(keyring)
 
 
-def osdize_and_activate(dev):
+def osdize(dev):
     # XXX hack for instances
     subprocess.call(['umount', '/mnt'])
 
@@ -137,8 +139,6 @@ def osdize_and_activate(dev):
     else:
         if os.path.exists(dev):
             subprocess.call(['ceph-disk-prepare', dev])
-            subprocess.call(['udevadm', 'trigger',
-                             '--subsystem-match=block', '--action=add'])
 
 
 def mon_relation():
@@ -151,7 +151,9 @@ def mon_relation():
 
         ceph.wait_for_quorum()
         for dev in utils.config_get('osd-devices').split(' '):
-            osdize_and_activate(dev)
+            osdize(dev)
+        subprocess.call(['udevadm', 'trigger',
+                         '--subsystem-match=block', '--action=add'])
 
         for peer in get_mon_addresses():
             ceph.add_bootstrap_hint(peer)
@@ -170,11 +172,20 @@ def upgrade_charm():
     utils.juju_log('INFO', 'End upgrade-charm hook.')
 
 
+def start():
+    # In case we're being redeployed to the same machines, try
+    # to make sure everything is running as soon as possible.
+    subprocess.call(['start', 'ceph-mon-all-starter'])
+    subprocess.call(['udevadm', 'trigger',
+                     '--subsystem-match=block', '--action=add'])
+
+
 hooks = {
     'config-changed': config_changed,
     'install': install,
     'mon-relation-departed': mon_relation,
     'mon-relation-joined': mon_relation,
+    'start': start,
     'upgrade-charm': upgrade_charm,
 }
 
