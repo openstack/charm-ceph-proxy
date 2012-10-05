@@ -12,6 +12,7 @@ import subprocess
 import socket
 import sys
 
+
 def do_hooks(hooks):
     hook = os.path.basename(sys.argv[0])
 
