@@ -57,3 +57,15 @@ def add_bootstrap_hint(peer):
     if os.path.exists(asok):
         # Ignore any errors for this call
         subprocess.call(cmd)
+
+
+def is_osd_disk(dev):
+    try:
+        info = subprocess.check_output(['sgdisk', '-i', '1', dev])
+        info = info.split("\n")
+        for line in info:
+            if line.startswith('Partition GUID code: 4FBD7E29-9D25-41B8-AFD0-062C0CEFF05D'):
+                return True
+    except subprocess.CalledProcessError:
+        pass
+    return False

@@ -133,12 +133,18 @@ def osdize(dev):
     # XXX hack for instances
     subprocess.call(['umount', '/mnt'])
 
+    if ceph.is_osd_disk(dev):
+        utils.juju_log('INFO',
+                       'Looks like {} is already an OSD, skipping.'.format(dev))
+        return
+
     if subprocess.call(['grep', '-wqs', dev + '1', '/proc/mounts']) == 0:
         utils.juju_log('INFO',
                        'Looks like {} is in use, skipping.'.format(dev))
-    else:
-        if os.path.exists(dev):
-            subprocess.call(['ceph-disk-prepare', dev])
+        return
+
+    if os.path.exists(dev):
+        subprocess.call(['ceph-disk-prepare', dev])
 
 
 def mon_relation():
