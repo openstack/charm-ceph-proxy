@@ -12,7 +12,6 @@ import glob
 import os
 import subprocess
 import shutil
-import socket
 import sys
 
 import ceph
@@ -147,12 +146,38 @@ def mon_relation():
             osdize(dev)
         subprocess.call(['udevadm', 'trigger',
                          '--subsystem-match=block', '--action=add'])
+
+        notify_osds()
     else:
         utils.juju_log('INFO',
                        'Not enough mons ({}), punting.'.format(
                             len(get_mon_hosts())))
 
     utils.juju_log('INFO', 'End mon-relation hook.')
+
+
+def notify_osds():
+    utils.juju_log('INFO', 'Begin notify_osds.')
+
+    for relid in utils.relation_ids('osd'):
+        utils.relation_set(fsid=utils.config_get('fsid'),
+                           rid=relid)
+
+    utils.juju_log('INFO', 'End notify_osds.')
+
+
+def osd_relation():
+    utils.juju_log('INFO', 'Begin osd-relation hook.')
+
+    if ceph.is_quorum():
+        utils.juju_log('INFO',
+                       'mon cluster in quorum - providing OSD with fsid')
+        utils.relation_set(fsid=utils.config_get('fsid'))
+    else:
+        utils.juju_log('INFO',
+                       'mon cluster not in quorum - deferring fsid provision')
+
+    utils.juju_log('INFO', 'End osd-relation hook.')
 
 
 def upgrade_charm():
@@ -175,6 +200,7 @@ utils.do_hooks({
         'install': install,
         'mon-relation-departed': mon_relation,
         'mon-relation-joined': mon_relation,
+        'osd-relation-joined': osd_relation,
         'start': start,
         'upgrade-charm': upgrade_charm,
         })

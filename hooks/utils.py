@@ -129,8 +129,14 @@ def relation_set(**kwargs):
     cmd = [
         'relation-set'
         ]
+    args = []
     for k, v in kwargs.items():
-        cmd.append('{}={}'.format(k, v))
+        if k == 'rid':
+            cmd.append('-r')
+            cmd.append(v)
+        else:
+            args.append('{}={}'.format(k, v))
+    cmd += args
     subprocess.check_call(cmd)
 
 

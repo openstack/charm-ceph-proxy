@@ -8,3 +8,10 @@ description: |
 peers:
   mon:
     interface: ceph-brolin
+provides:
+  client:
+    interface: ceph-client
+  osd:
+    interface: ceph-osd
+  radosgw:
+    interface: ceph-radosgw
