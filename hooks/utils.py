@@ -3,12 +3,24 @@
 # Copyright 2012 Canonical Ltd.
 #
 # Authors:
-#  James Page <james.page@canonical.com>
-#
+#  James Page <james.page@ubuntu.com>
+#  Paul Collins <paul.collins@canonical.com>
 #
 
+import os
 import subprocess
 import socket
+import sys
+
+
+def do_hooks(hooks):
+    hook = os.path.basename(sys.argv[0])
+
+    try:
+        hooks[hook]()
+    except KeyError:
+        utils.juju_log('INFO',
+                       "This charm doesn't know how to handle '{}'.".format(hook))
 
 
 def install(*pkgs):
