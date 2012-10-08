@@ -19,8 +19,8 @@ def do_hooks(hooks):
     try:
         hooks[hook]()
     except KeyError:
-        utils.juju_log('INFO',
-                       "This charm doesn't know how to handle '{}'.".format(hook))
+        juju_log('INFO',
+                 "This charm doesn't know how to handle '{}'.".format(hook))
 
 
 def install(*pkgs):
