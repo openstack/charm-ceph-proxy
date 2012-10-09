@@ -179,6 +179,17 @@ def notify_radosgws():
     utils.juju_log('INFO', 'End notify_radosgws.')
 
 
+def notify_client():
+    utils.juju_log('INFO', 'Begin notify_client.')
+
+    for relid in utils.relation_ids('client'):
+        service_name = utils.relation_list(relid)[0].split('/')[0]
+        utils.relation_set(key=ceph.get_named_key(service_name),
+                           rid=relid)
+
+    utils.juju_log('INFO', 'End notify_client.')
+
+
 def osd_relation():
     utils.juju_log('INFO', 'Begin osd-relation hook.')
 
@@ -212,6 +223,22 @@ def radosgw_relation():
     utils.juju_log('INFO', 'End radosgw-relation hook.')
 
 
+def client_relation():
+    utils.juju_log('INFO', 'Begin client-relation hook.')
+
+    if ceph.is_quorum():
+        utils.juju_log('INFO',
+                       'mon cluster in quorum - \
+                        providing client with keys')
+        service_name = os.environ['JUJU_REMOTE_UNIT'].split('/')[0]
+        utils.relation_set(key=ceph.get_named_key(service_name))
+    else:
+        utils.juju_log('INFO',
+                       'mon cluster not in quorum - deferring key provision')
+
+    utils.juju_log('INFO', 'End client-relation hook.')
+
+
 def upgrade_charm():
     utils.juju_log('INFO', 'Begin upgrade-charm hook.')
     emit_cephconf()
@@ -234,6 +261,7 @@ utils.do_hooks({
         'mon-relation-joined': mon_relation,
         'osd-relation-joined': osd_relation,
         'radosgw-relation-joined': radosgw_relation,
+        'client-relation-joined': client_relation,
         'start': start,
         'upgrade-charm': upgrade_charm,
         })

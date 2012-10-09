@@ -98,34 +98,7 @@ _osd_bootstrap_caps = {
 
 
 def get_osd_bootstrap_key():
-    cmd = [
-        'ceph',
-        '--name', 'mon.',
-        '--keyring',
-        '/var/lib/ceph/mon/ceph-{}/keyring'.format(
-                                        utils.get_unit_hostname()
-                                        ),
-        'auth', 'get-or-create', 'client.bootstrap-osd',
-        ]
-    # Add capabilities
-    for subsystem, subcaps in _osd_bootstrap_caps.iteritems():
-        cmd.extend([
-            subsystem,
-            '; '.join(subcaps),
-            ])
-    output = subprocess.check_output(cmd).strip()  # IGNORE:E1103
-    # get-or-create appears to have different output depending
-    # on whether its 'get' or 'create'
-    # 'create' just returns the key, 'get' is more verbose and
-    # needs parsing
-    key = None
-    if len(output.splitlines()) == 1:
-        key = output
-    else:
-        for element in output.splitlines():
-            if 'key' in element:
-                key = element.split(' = ')[1].strip()  # IGNORE:E1103
-    return key
+    return get_named_key('bootstrap-osd', _osd_bootstrap_caps)
 
 
 _radosgw_keyring = "/etc/ceph/keyring.rados.gateway"
@@ -150,6 +123,17 @@ _radosgw_caps = {
 
 
 def get_radosgw_key():
+    return get_named_key('radosgw.gateway', _radosgw_caps)
+
+
+_default_caps = {
+    'mon': ['allow r'],
+    'osd': ['allow rwx']
+    }
+
+
+def get_named_key(name, caps=None):
+    caps = caps or _default_caps
     cmd = [
         'ceph',
         '--name', 'mon.',
@@ -157,10 +141,10 @@ def get_radosgw_key():
         '/var/lib/ceph/mon/ceph-{}/keyring'.format(
                                         utils.get_unit_hostname()
                                         ),
-        'auth', 'get-or-create', 'client.radosgw.gateway',
+        'auth', 'get-or-create', 'client.{}'.format(name),
         ]
     # Add capabilities
-    for subsystem, subcaps in _radosgw_caps.iteritems():
+    for subsystem, subcaps in caps.iteritems():
         cmd.extend([
             subsystem,
             '; '.join(subcaps),
