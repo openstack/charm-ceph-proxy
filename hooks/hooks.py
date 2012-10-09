@@ -142,6 +142,7 @@ def mon_relation():
         bootstrap_monitor_cluster()
 
         ceph.wait_for_quorum()
+
         for dev in utils.config_get('osd-devices').split(' '):
             osdize(dev)
         subprocess.call(['udevadm', 'trigger',
@@ -161,6 +162,7 @@ def notify_osds():
 
     for relid in utils.relation_ids('osd'):
         utils.relation_set(fsid=utils.config_get('fsid'),
+                           osd_bootstrap_key=ceph.get_osd_bootstrap_key(),
                            rid=relid)
 
     utils.juju_log('INFO', 'End notify_osds.')
@@ -171,8 +173,10 @@ def osd_relation():
 
     if ceph.is_quorum():
         utils.juju_log('INFO',
-                       'mon cluster in quorum - providing OSD with fsid')
-        utils.relation_set(fsid=utils.config_get('fsid'))
+                       'mon cluster in quorum - \
+                        providing OSD with fsid & keys')
+        utils.relation_set(fsid=utils.config_get('fsid'),
+                           osd_bootstrap_key=ceph.get_osd_bootstrap_key())
     else:
         utils.juju_log('INFO',
                        'mon cluster not in quorum - deferring fsid provision')

@@ -80,8 +80,5 @@ bootstrapping key and propagate it to the other nodes in the cluster. Since
 all OSDs run on nodes that also run mon, we don't need this and did not
 implement it.
 
-The charm does not currently implement cephx and its explicitly turned off in
-the configuration generated for ceph.
-
 See http://ceph.com/docs/master/dev/mon-bootstrap/ for more information on Ceph
 monitor cluster deployment strategies and pitfalls. 
