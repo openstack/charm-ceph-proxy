@@ -1,4 +1,4 @@
-name: ceph-brolin
+name: ceph
 summary: Highly scalable distributed storage
 maintainer: James Page <james.page@ubuntu.com>,
   Paul Collins <paul.collins@canonical.com>
@@ -7,7 +7,7 @@ description: |
  excellent performance, reliability, and scalability.
 peers:
   mon:
-    interface: ceph-brolin
+    interface: ceph
 provides:
   client:
     interface: ceph-client
