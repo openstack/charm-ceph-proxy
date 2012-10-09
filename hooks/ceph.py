@@ -87,12 +87,14 @@ def import_osd_bootstrap_key(key):
         subprocess.check_call(cmd)
 
 # OSD caps taken from ceph-create-keys
-_osd_bootstrap_caps = [
-    'allow command osd create ...',
-    'allow command osd crush set ...',
-   r'allow command auth add * osd allow\ * mon allow\ rwx',
-    'allow command mon getmap'
-    ]
+_osd_bootstrap_caps = {
+    'mon': [
+        'allow command osd create ...',
+        'allow command osd crush set ...',
+       r'allow command auth add * osd allow\ * mon allow\ rwx',
+        'allow command mon getmap'
+        ]
+    }
 
 
 def get_osd_bootstrap_key():
@@ -104,8 +106,65 @@ def get_osd_bootstrap_key():
                                         utils.get_unit_hostname()
                                         ),
         'auth', 'get-or-create', 'client.bootstrap-osd',
-        'mon', '; '.join(_osd_bootstrap_caps)
         ]
+    # Add capabilities
+    for subsystem, subcaps in _osd_bootstrap_caps.iteritems():
+        cmd.extend([
+            subsystem,
+            '; '.join(subcaps),
+            ])
+    output = subprocess.check_output(cmd).strip()  # IGNORE:E1103
+    # get-or-create appears to have different output depending
+    # on whether its 'get' or 'create'
+    # 'create' just returns the key, 'get' is more verbose and
+    # needs parsing
+    key = None
+    if len(output.splitlines()) == 1:
+        key = output
+    else:
+        for element in output.splitlines():
+            if 'key' in element:
+                key = element.split(' = ')[1].strip()  # IGNORE:E1103
+    return key
+
+
+_radosgw_keyring = "/etc/ceph/keyring.rados.gateway"
+
+
+def import_radosgw_key(key):
+    if not os.path.exists(_radosgw_keyring):
+        cmd = [
+            'ceph-authtool',
+            _radosgw_keyring,
+            '--create-keyring',
+            '--name=client.radosgw.gateway',
+            '--add-key={}'.format(key)
+            ]
+        subprocess.check_call(cmd)
+
+# OSD caps taken from ceph-create-keys
+_radosgw_caps = {
+    'mon': ['allow r'],
+    'osd': ['allow rwx']
+    }
+
+
+def get_radosgw_key():
+    cmd = [
+        'ceph',
+        '--name', 'mon.',
+        '--keyring',
+        '/var/lib/ceph/mon/ceph-{}/keyring'.format(
+                                        utils.get_unit_hostname()
+                                        ),
+        'auth', 'get-or-create', 'client.radosgw.gateway',
+        ]
+    # Add capabilities
+    for subsystem, subcaps in _radosgw_caps.iteritems():
+        cmd.extend([
+            subsystem,
+            '; '.join(subcaps),
+            ])
     output = subprocess.check_output(cmd).strip()  # IGNORE:E1103
     # get-or-create appears to have different output depending
     # on whether its 'get' or 'create'

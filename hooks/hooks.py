@@ -149,6 +149,7 @@ def mon_relation():
                          '--subsystem-match=block', '--action=add'])
 
         notify_osds()
+        notify_radosgws()
     else:
         utils.juju_log('INFO',
                        'Not enough mons ({}), punting.'.format(
@@ -168,6 +169,16 @@ def notify_osds():
     utils.juju_log('INFO', 'End notify_osds.')
 
 
+def notify_radosgws():
+    utils.juju_log('INFO', 'Begin notify_radosgws.')
+
+    for relid in utils.relation_ids('radosgw'):
+        utils.relation_set(radosgw_key=ceph.get_radosgw_key(),
+                           rid=relid)
+
+    utils.juju_log('INFO', 'End notify_radosgws.')
+
+
 def osd_relation():
     utils.juju_log('INFO', 'Begin osd-relation hook.')
 
@@ -182,6 +193,23 @@ def osd_relation():
                        'mon cluster not in quorum - deferring fsid provision')
 
     utils.juju_log('INFO', 'End osd-relation hook.')
+
+
+def radosgw_relation():
+    utils.juju_log('INFO', 'Begin radosgw-relation hook.')
+
+    utils.install('radosgw')  # Install radosgw for admin tools
+
+    if ceph.is_quorum():
+        utils.juju_log('INFO',
+                       'mon cluster in quorum - \
+                        providing radosgw with keys')
+        utils.relation_set(radosgw_key=ceph.get_radosgw_key())
+    else:
+        utils.juju_log('INFO',
+                       'mon cluster not in quorum - deferring key provision')
+
+    utils.juju_log('INFO', 'End radosgw-relation hook.')
 
 
 def upgrade_charm():
@@ -205,6 +233,7 @@ utils.do_hooks({
         'mon-relation-departed': mon_relation,
         'mon-relation-joined': mon_relation,
         'osd-relation-joined': osd_relation,
+        'radosgw-relation-joined': radosgw_relation,
         'start': start,
         'upgrade-charm': upgrade_charm,
         })
