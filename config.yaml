@@ -30,6 +30,15 @@ options:
       .
       These devices are the range of devices that will be checked for and
       used across all service units.
+  ephemeral-unmount:
+    type: string
+    description: |
+      Cloud instances provider ephermeral storage which is normally mounted
+      on /mnt.
+      .
+      Providing this option will force an unmount of the ephemeral device
+      so that it can be used as a OSD storage device.  This is useful for
+      testing purposes (cloud deployment is not a typical use case).
   source:
     type: string
     description: |
