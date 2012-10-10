@@ -40,7 +40,7 @@ cluster.
 At a minimum you must provide a juju config file during initial deployment
 with the fsid and monitor-secret options (contents of cepy.yaml below):
 
-    ceph-brolin:
+    ceph:
         fsid: ecbb8960-0e21-11e2-b495-83a88f44db01 
         monitor-secret: AQD1P2xQiKglDhAA4NGUF5j38Mhq56qwz+45wg==
         osd-devices: /dev/vdb /dev/vdc /dev/vdd /dev/vde
@@ -49,7 +49,7 @@ Specifying the osd-devices to use is also a good idea.
 
 Boot things up by using:
 
-    juju deploy -n 3 --config ceph.yaml ceph-brolin
+    juju deploy -n 3 --config ceph.yaml ceph
 
 By default the ceph cluster will not bootstrap until 3 service units have been
 deployed and started; this is to ensure that a quorum is achieved prior to adding
