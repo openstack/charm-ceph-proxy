@@ -75,6 +75,11 @@ def is_osd_disk(dev):
 _bootstrap_keyring = "/var/lib/ceph/bootstrap-osd/ceph.keyring"
 
 
+def wait_for_bootstrap_osd_keyring():
+    while (not os.path.exists(_bootstrap_keyring)):
+        time.sleep(3)
+
+
 def import_osd_bootstrap_key(key):
     if not os.path.exists(_bootstrap_keyring):
         cmd = [

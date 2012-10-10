@@ -144,10 +144,9 @@ def mon_relation():
 
         ceph.wait_for_quorum()
 
-        # TODO:Potential race condition between ceph-create-keys
-        # completing and the upstart hotplug OSD device stuff
-        # running which is dependent on the osd bootstrap keyring
-        # being in place.
+        # bootstrap keyring must be present before OSD devices
+        # can be activated
+        ceph.wait_for_bootstrap_osd_keyring()
         for dev in utils.config_get('osd-devices').split(' '):
             osdize(dev)
         subprocess.call(['udevadm', 'trigger',
