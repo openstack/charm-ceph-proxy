@@ -54,6 +54,14 @@ Boot things up by using:
 By default the ceph cluster will not bootstrap until 3 service units have been
 deployed and started; this is to ensure that a quorum is achieved prior to adding
 storage devices.
+
+Contact Information
+===================
+
+Author: Paul Collins <paul.collins@canonical.com>,
+ James Page <james.page@ubuntu.com>
+Report bugs at: http://bugs.launchpad.net/charms/+source/ceph/+filebug
+Location: http://jujucharms.com/charms/ceph
     
 Technical Bootnotes
 ===================
