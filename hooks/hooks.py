@@ -143,6 +143,10 @@ def mon_relation():
 
         ceph.wait_for_quorum()
 
+        # TODO:Potential race condition between ceph-create-keys
+        # completing and the upstart hotplug OSD device stuff
+        # running which is dependent on the osd bootstrap keyring
+        # being in place.
         for dev in utils.config_get('osd-devices').split(' '):
             osdize(dev)
         subprocess.call(['udevadm', 'trigger',
@@ -150,6 +154,7 @@ def mon_relation():
 
         notify_osds()
         notify_radosgws()
+        notify_client()
     else:
         utils.juju_log('INFO',
                        'Not enough mons ({}), punting.'.format(
