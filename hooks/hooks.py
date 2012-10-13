@@ -62,6 +62,12 @@ def config_changed():
     for dev in utils.config_get('osd-devices').split(' '):
         osdize(dev)
 
+    # Support use of single node ceph
+    if (not ceph.is_bootstrapped() and
+        int(utils.config_get('monitor-count')) == 1):
+        bootstrap_monitor_cluster()
+        ceph.wait_for_bootstrap()
+
     if ceph.is_bootstrapped():
         ceph.rescan_osd_devices()
 
@@ -245,8 +251,7 @@ def start():
     # In case we're being redeployed to the same machines, try
     # to make sure everything is running as soon as possible.
     subprocess.call(['start', 'ceph-mon-all-starter'])
-    subprocess.call(['udevadm', 'trigger',
-                     '--subsystem-match=block', '--action=add'])
+    ceph.rescan_osd_devices()
 
 
 utils.do_hooks({
