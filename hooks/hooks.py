@@ -59,11 +59,11 @@ def config_changed():
 
     emit_cephconf()
 
-    if ceph.is_quorum():
-        for dev in utils.config_get('osd-devices').split(' '):
-            osdize(dev)
-        subprocess.call(['udevadm', 'trigger',
-                         '--subsystem-match=block', '--action=add'])
+    for dev in utils.config_get('osd-devices').split(' '):
+        osdize(dev)
+
+    if ceph.is_bootstrapped():
+        ceph.rescan_osd_devices()
 
     utils.juju_log('INFO', 'End config-changed hook.')
 
@@ -141,17 +141,8 @@ def mon_relation():
     moncount = int(utils.config_get('monitor-count'))
     if len(get_mon_hosts()) >= moncount:
         bootstrap_monitor_cluster()
-
-        ceph.wait_for_quorum()
-
-        # bootstrap keyring must be present before OSD devices
-        # can be activated
-        ceph.wait_for_bootstrap_osd_keyring()
-        for dev in utils.config_get('osd-devices').split(' '):
-            osdize(dev)
-        subprocess.call(['udevadm', 'trigger',
-                         '--subsystem-match=block', '--action=add'])
-
+        ceph.wait_for_bootstrap()
+        ceph.rescan_osd_devices()
         notify_osds()
         notify_radosgws()
         notify_client()
@@ -200,8 +191,7 @@ def osd_relation():
 
     if ceph.is_quorum():
         utils.juju_log('INFO',
-                       'mon cluster in quorum - \
-                        providing OSD with fsid & keys')
+                       'mon cluster in quorum - providing fsid & keys')
         utils.relation_set(fsid=utils.config_get('fsid'),
                            osd_bootstrap_key=ceph.get_osd_bootstrap_key())
     else:

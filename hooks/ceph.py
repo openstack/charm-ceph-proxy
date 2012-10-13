@@ -72,11 +72,25 @@ def is_osd_disk(dev):
         pass
     return False
 
+
+def rescan_osd_devices():
+    cmd = [
+        'udevadm', 'trigger',
+        '--subsystem-match=block', '--action=add'
+        ]
+
+    subprocess.call(cmd)
+
+
 _bootstrap_keyring = "/var/lib/ceph/bootstrap-osd/ceph.keyring"
 
 
-def wait_for_bootstrap_osd_keyring():
-    while (not os.path.exists(_bootstrap_keyring)):
+def is_bootstrapped():
+    return os.path.exists(_bootstrap_keyring)
+
+
+def wait_for_bootstrap():
+    while (not is_bootstrapped()):
         time.sleep(3)
 
 
