@@ -53,14 +53,15 @@ def render_template(template_name, context, template_dir=TEMPLATES_DIR):
 def configure_source():
     source = config_get('source')
     if (source.startswith('ppa:') or
-        source.startswith('cloud:') or
-        source.startswith('http:')):
+        source.startswith('cloud:')):
         cmd = [
             'add-apt-repository',
             source
             ]
         subprocess.check_call(cmd)
     if source.startswith('http:'):
+	with open('/etc/apt/sources.list.d/ceph.list', 'w') as apt:
+            apt.write("deb " + source + "\n")
         key = config_get('key')
         if key != "":
             cmd = [
