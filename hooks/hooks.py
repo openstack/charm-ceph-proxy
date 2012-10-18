@@ -33,6 +33,7 @@ def install():
 
 def emit_cephconf():
     cephcontext = {
+        'auth_supported': utils.config_get('auth-supported'),
         'mon_hosts': ' '.join(get_mon_hosts()),
         'fsid': utils.config_get('fsid'),
         }
