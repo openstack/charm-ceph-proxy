@@ -62,12 +62,13 @@ def configure_source():
         subprocess.check_call(cmd)
     if source.startswith('http:'):
         key = config_get('key')
-        cmd = [
-            'apt-key',
-            'import',
-            key
-            ]
-        subprocess.check_call(cmd)
+        if key != "":
+            cmd = [
+                'apt-key',
+                'import',
+                key
+                ]
+            subprocess.check_call(cmd)
     cmd = [
         'apt-get',
         'update'
