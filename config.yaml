@@ -6,6 +6,15 @@ options:
       .
       This configuration element is mandatory and the service will fail on
       install if it is not provided.
+  auth-supported:
+    type: string
+    default: cephx
+    description: |
+      Which authentication flavour to use.
+      .
+      Valid options are "cephx" and "none".  If "none" is specified,
+      keys will still be created and deployed so that it can be
+      enabled later.
   monitor-secret:
     type: string
     description: |

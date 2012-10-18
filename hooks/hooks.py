@@ -33,6 +33,7 @@ def install():
 
 def emit_cephconf():
     cephcontext = {
+        'auth_supported': utils.config_get('auth-supported'),
         'mon_hosts': ' '.join(get_mon_hosts()),
         'fsid': utils.config_get('fsid'),
         }
@@ -166,6 +167,7 @@ def notify_osds():
     for relid in utils.relation_ids('osd'):
         utils.relation_set(fsid=utils.config_get('fsid'),
                            osd_bootstrap_key=ceph.get_osd_bootstrap_key(),
+                           auth=utils.config_get('auth-supported'),
                            rid=relid)
 
     utils.juju_log('INFO', 'End notify_osds.')
@@ -176,6 +178,7 @@ def notify_radosgws():
 
     for relid in utils.relation_ids('radosgw'):
         utils.relation_set(radosgw_key=ceph.get_radosgw_key(),
+                           auth=utils.config_get('auth-supported'),
                            rid=relid)
 
     utils.juju_log('INFO', 'End notify_radosgws.')
@@ -187,6 +190,7 @@ def notify_client():
     for relid in utils.relation_ids('client'):
         service_name = utils.relation_list(relid)[0].split('/')[0]
         utils.relation_set(key=ceph.get_named_key(service_name),
+                           auth=utils.config_get('auth-supported'),
                            rid=relid)
 
     utils.juju_log('INFO', 'End notify_client.')
@@ -199,7 +203,8 @@ def osd_relation():
         utils.juju_log('INFO',
                        'mon cluster in quorum - providing fsid & keys')
         utils.relation_set(fsid=utils.config_get('fsid'),
-                           osd_bootstrap_key=ceph.get_osd_bootstrap_key())
+                           osd_bootstrap_key=ceph.get_osd_bootstrap_key(),
+                           auth=utils.config_get('auth-supported'))
     else:
         utils.juju_log('INFO',
                        'mon cluster not in quorum - deferring fsid provision')
@@ -216,7 +221,8 @@ def radosgw_relation():
         utils.juju_log('INFO',
                        'mon cluster in quorum - \
                         providing radosgw with keys')
-        utils.relation_set(radosgw_key=ceph.get_radosgw_key())
+        utils.relation_set(radosgw_key=ceph.get_radosgw_key(),
+                           auth=utils.config_get('auth-supported'))
     else:
         utils.juju_log('INFO',
                        'mon cluster not in quorum - deferring key provision')
@@ -232,7 +238,8 @@ def client_relation():
                        'mon cluster in quorum - \
                         providing client with keys')
         service_name = os.environ['JUJU_REMOTE_UNIT'].split('/')[0]
-        utils.relation_set(key=ceph.get_named_key(service_name))
+        utils.relation_set(key=ceph.get_named_key(service_name),
+                           auth=utils.config_get('auth-supported'))
     else:
         utils.juju_log('INFO',
                        'mon cluster not in quorum - deferring key provision')
