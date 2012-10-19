@@ -13,7 +13,9 @@ import time
 import utils
 import os
 
-QUORUM = ['leader', 'peon']
+LEADER = 'leader'
+PEON = 'peon'
+QUORUM = [LEADER, PEON]
 
 
 def is_quorum():
@@ -33,6 +35,30 @@ def is_quorum():
             # Non JSON response from mon_status
             return False
         if result['state'] in QUORUM:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+
+def is_leader():
+    asok = "/var/run/ceph/ceph-mon.{}.asok".format(utils.get_unit_hostname())
+    cmd = [
+        "ceph",
+        "--admin-daemon",
+        asok,
+        "mon_status"
+        ]
+    if os.path.exists(asok):
+        try:
+            result = json.loads(subprocess.check_output(cmd))
+        except subprocess.CalledProcessError:
+            return False
+        except ValueError:
+            # Non JSON response from mon_status
+            return False
+        if result['state'] == LEADER:
             return True
         else:
             return False
