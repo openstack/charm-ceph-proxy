@@ -54,7 +54,7 @@ options:
       Optional configuration to support use of additional sources such as:
       .
         - ppa:myteam/ppa
-        - cloud:folsom-proposed
+        - cloud:precise-proposed/folsom
         - http://my.archive.com/ubuntu main
       .
       The last option should be used in conjunction with the key configuration
@@ -62,7 +62,7 @@ options:
       .
       Note that a minimum ceph version of 0.48.2 is required for use with this
       charm which is NOT provided by the packages in the main Ubuntu archive
-      for precise.
+      for precise but is provided in the Folsom cloud archive.
   key:
     type: string
     description: |

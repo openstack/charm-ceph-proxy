@@ -122,6 +122,11 @@ def bootstrap_monitor_cluster():
 
 
 def osdize(dev):
+    if not os.path.exists(dev):
+        utils.juju_log('INFO',
+                       'Path {} does not exist - bailing'.format(dev))
+        return
+
     e_mountpoint = utils.config_get('ephemeral-unmount')
     if e_mountpoint != "":
         subprocess.call(['umount', e_mountpoint])
@@ -137,8 +142,7 @@ def osdize(dev):
                        'Looks like {} is in use, skipping.'.format(dev))
         return
 
-    if os.path.exists(dev):
-        subprocess.call(['ceph-disk-prepare', dev])
+    subprocess.call(['ceph-disk-prepare', dev])
 
 
 def mon_relation():
