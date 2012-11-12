@@ -121,6 +121,13 @@ def bootstrap_monitor_cluster():
             os.unlink(keyring)
 
 
+def reformat_osd():
+    if utils.config_get('osd-reformat') != "":
+        return True
+    else:
+        return False
+
+
 def osdize(dev):
     if not os.path.exists(dev):
         utils.juju_log('INFO',
@@ -131,7 +138,8 @@ def osdize(dev):
     if e_mountpoint != "":
         subprocess.call(['umount', e_mountpoint])
 
-    if ceph.is_osd_disk(dev):
+    if (ceph.is_osd_disk(dev) and not
+        reformat_osd()):
         utils.juju_log('INFO',
                        'Looks like {} is already an OSD, skipping.'
                        .format(dev))

@@ -39,6 +39,15 @@ options:
       .
       These devices are the range of devices that will be checked for and
       used across all service units.
+  osd-reformat:
+    type: string
+    description: |
+      By default, the charm will not re-format a device that already looks
+      as if it might be an OSD device.  This is a safeguard to try to
+      prevent data loss.
+      .
+      Specifying this option (any value) forces a reformat of any OSD devices
+      found which are not already mounted.       
   ephemeral-unmount:
     type: string
     description: |
