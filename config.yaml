@@ -59,6 +59,7 @@ options:
       testing purposes (cloud deployment is not a typical use case).
   source:
     type: string
+    default: cloud:precise-updates/folsom
     description: |
       Optional configuration to support use of additional sources such as:
       .
