@@ -39,6 +39,15 @@ options:
       .
       These devices are the range of devices that will be checked for and
       used across all service units.
+  osd-reformat:
+    type: string
+    description: |
+      By default, the charm will not re-format a device that already looks
+      as if it might be an OSD device.  This is a safeguard to try to
+      prevent data loss.
+      .
+      Specifying this option (any value) forces a reformat of any OSD devices
+      found which are not already mounted.       
   ephemeral-unmount:
     type: string
     description: |
@@ -54,7 +63,7 @@ options:
       Optional configuration to support use of additional sources such as:
       .
         - ppa:myteam/ppa
-        - cloud:folsom-proposed
+        - cloud:precise-proposed/folsom
         - http://my.archive.com/ubuntu main
       .
       The last option should be used in conjunction with the key configuration
@@ -62,7 +71,7 @@ options:
       .
       Note that a minimum ceph version of 0.48.2 is required for use with this
       charm which is NOT provided by the packages in the main Ubuntu archive
-      for precise.
+      for precise but is provided in the Folsom cloud archive.
   key:
     type: string
     description: |

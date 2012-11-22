@@ -60,6 +60,11 @@ def config_changed():
 
     emit_cephconf()
 
+    e_mountpoint = utils.config_get('ephemeral-unmount')
+    if (e_mountpoint != "" and
+        filesystem_mounted(e_mountpoint)):
+        subprocess.call(['umount', e_mountpoint])
+
     for dev in utils.config_get('osd-devices').split(' '):
         osdize(dev)
 
@@ -121,24 +126,40 @@ def bootstrap_monitor_cluster():
             os.unlink(keyring)
 
 
-def osdize(dev):
-    e_mountpoint = utils.config_get('ephemeral-unmount')
-    if e_mountpoint != "":
-        subprocess.call(['umount', e_mountpoint])
+def reformat_osd():
+    if utils.config_get('osd-reformat') != "":
+        return True
+    else:
+        return False
 
-    if ceph.is_osd_disk(dev):
+
+def osdize(dev):
+    if not os.path.exists(dev):
+        utils.juju_log('INFO',
+                       'Path {} does not exist - bailing'.format(dev))
+        return
+
+    if (ceph.is_osd_disk(dev) and not
+        reformat_osd()):
         utils.juju_log('INFO',
                        'Looks like {} is already an OSD, skipping.'
                        .format(dev))
         return
 
-    if subprocess.call(['grep', '-wqs', dev + '1', '/proc/mounts']) == 0:
+    if device_mounted(dev):
         utils.juju_log('INFO',
                        'Looks like {} is in use, skipping.'.format(dev))
         return
 
-    if os.path.exists(dev):
-        subprocess.call(['ceph-disk-prepare', dev])
+    subprocess.call(['ceph-disk-prepare', dev])
+
+
+def device_mounted(dev):
+    return subprocess.call(['grep', '-wqs', dev + '1', '/proc/mounts']) == 0
+
+
+def filesystem_mounted(fs):
+    return subprocess.call(['grep', '-wqs', fs, '/proc/mounts']) == 0
 
 
 def mon_relation():
