@@ -19,8 +19,11 @@ import utils
 
 
 def install_upstart_scripts():
-    for x in glob.glob('files/upstart/*.conf'):
-        shutil.copy(x, '/etc/init/')
+    # Only install upstart configurations for older versions
+    if ceph.version_compare(ceph.get_ceph_version(),
+                            "0.55.1") < 0:
+        for x in glob.glob('files/upstart/*.conf'):
+            shutil.copy(x, '/etc/init/')
 
 
 def install():
@@ -36,6 +39,7 @@ def emit_cephconf():
         'auth_supported': utils.config_get('auth-supported'),
         'mon_hosts': ' '.join(get_mon_hosts()),
         'fsid': utils.config_get('fsid'),
+        'version': ceph.get_ceph_version()
         }
 
     with open('/etc/ceph/ceph.conf', 'w') as cephconf:
@@ -53,7 +57,7 @@ def config_changed():
         sys.exit(1)
 
     monitor_secret = utils.config_get('monitor-secret')
-    if monitor_secret == '':
+    if not monitor_secret:
         utils.juju_log('CRITICAL',
                        'No monitor-secret supplied, cannot proceed.')
         sys.exit(1)
@@ -61,7 +65,7 @@ def config_changed():
     emit_cephconf()
 
     e_mountpoint = utils.config_get('ephemeral-unmount')
-    if (e_mountpoint != "" and
+    if (e_mountpoint and
         filesystem_mounted(e_mountpoint)):
         subprocess.call(['umount', e_mountpoint])
 
@@ -127,7 +131,7 @@ def bootstrap_monitor_cluster():
 
 
 def reformat_osd():
-    if utils.config_get('osd-reformat') != "":
+    if utils.config_get('osd-reformat'):
         return True
     else:
         return False
@@ -151,7 +155,24 @@ def osdize(dev):
                        'Looks like {} is in use, skipping.'.format(dev))
         return
 
-    subprocess.call(['ceph-disk-prepare', dev])
+    cmd = ['ceph-disk-prepare']
+    # Later versions of ceph support more options
+    if ceph.version_compare(ceph.get_ceph_version(),
+                            "0.55") >= 0:
+        osd_format = utils.config_get('osd-format')
+        if osd_format:
+            cmd.append('--fs-type')
+            cmd.append(osd_format)
+        cmd.append(dev)
+        osd_journal = utils.config_get('osd-journal')
+        if (osd_journal and
+            os.path.exists(osd_journal)):
+            cmd.append(osd_journal)
+    else:
+        # Just provide the device - no other options
+        # for older versions of ceph
+        cmd.append(dev)
+    subprocess.call(cmd)
 
 
 def device_mounted(dev):

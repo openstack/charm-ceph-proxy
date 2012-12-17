@@ -136,7 +136,11 @@ def relation_get(attribute, unit=None, rid=None):
     cmd.append(attribute)
     if unit:
         cmd.append(unit)
-    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
+    value = str(subprocess.check_output(cmd)).strip()
+    if value == "":
+        return None
+    else:
+        return value
 
 
 def relation_set(**kwargs):
@@ -159,7 +163,11 @@ def unit_get(attribute):
         'unit-get',
         attribute
         ]
-    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
+    value = str(subprocess.check_output(cmd)).strip()
+    if value == "":
+        return None
+    else:
+        return value
 
 
 def config_get(attribute):
@@ -167,7 +175,11 @@ def config_get(attribute):
         'config-get',
         attribute
         ]
-    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
+    value = str(subprocess.check_output(cmd)).strip()
+    if value == "":
+        return None
+    else:
+        return value
 
 
 def get_unit_hostname():
