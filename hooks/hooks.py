@@ -45,6 +45,8 @@ def emit_cephconf():
     with open('/etc/ceph/ceph.conf', 'w') as cephconf:
         cephconf.write(utils.render_template('ceph.conf', cephcontext))
 
+JOURNAL_ZAPPED = '/var/lib/ceph/journal_zapped'
+
 
 def config_changed():
     utils.juju_log('INFO', 'Begin config-changed hook.')
@@ -68,6 +70,14 @@ def config_changed():
     if (e_mountpoint and
         filesystem_mounted(e_mountpoint)):
         subprocess.call(['umount', e_mountpoint])
+
+    osd_journal = utils.config_get('osd-journal')
+    if (osd_journal and
+        not os.path.exists(JOURNAL_ZAPPED) and
+        os.path.exists(osd_journal)):
+        ceph.zap_disk(osd_journal)
+        with open(JOURNAL_ZAPPED, 'w') as zapped:
+            zapped.write('DONE')
 
     for dev in utils.config_get('osd-devices').split(' '):
         osdize(dev)

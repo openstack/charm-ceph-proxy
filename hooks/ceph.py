@@ -109,6 +109,11 @@ def rescan_osd_devices():
     subprocess.call(cmd)
 
 
+def zap_disk(dev):
+    cmd = ['sgdisk', '--zap-all', dev]
+    subprocess.check_call(cmd)
+
+
 _bootstrap_keyring = "/var/lib/ceph/bootstrap-osd/ceph.keyring"
 
 
