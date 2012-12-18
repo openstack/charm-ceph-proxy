@@ -29,7 +29,7 @@ def install_upstart_scripts():
 def install():
     utils.juju_log('INFO', 'Begin install hook.')
     utils.configure_source()
-    utils.install('ceph', 'gdisk', 'ntp')
+    utils.install('ceph', 'gdisk', 'ntp', 'btrfs-tools')
     install_upstart_scripts()
     utils.juju_log('INFO', 'End install hook.')
 
@@ -53,15 +53,17 @@ def config_changed():
 
     utils.juju_log('INFO', 'Monitor hosts are ' + repr(get_mon_hosts()))
 
-    fsid = utils.config_get('fsid')
-    if fsid == '':
+    # Pre-flight checks
+    if not utils.config_get('fsid'):
         utils.juju_log('CRITICAL', 'No fsid supplied, cannot proceed.')
         sys.exit(1)
-
-    monitor_secret = utils.config_get('monitor-secret')
-    if not monitor_secret:
+    if not utils.config_get('monitor-secret'):
         utils.juju_log('CRITICAL',
                        'No monitor-secret supplied, cannot proceed.')
+        sys.exit(1)
+    if utils.config_get('osd-format') not in ceph.DISK_FORMATS:
+        utils.juju_log('CRITICAL',
+                       'Invalid OSD disk format configuration specified')
         sys.exit(1)
 
     emit_cephconf()

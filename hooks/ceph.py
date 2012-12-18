@@ -85,6 +85,12 @@ def add_bootstrap_hint(peer):
         # Ignore any errors for this call
         subprocess.call(cmd)
 
+DISK_FORMATS = [
+    'xfs',
+    'ext4',
+    'btrfs'
+    ]
+
 
 def is_osd_disk(dev):
     try:

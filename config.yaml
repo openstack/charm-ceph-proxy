@@ -54,6 +54,7 @@ options:
       .
         xfs (Default >= 0.55)
         ext4 (Only option < 0.55)
+        btrfs (experimental and not recommended)
       .
       Only supported with ceph >= 0.55.      
   osd-reformat:
