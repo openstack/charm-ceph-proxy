@@ -11,16 +11,19 @@ import os
 import subprocess
 import socket
 import sys
+import re
 
 
 def do_hooks(hooks):
     hook = os.path.basename(sys.argv[0])
 
     try:
-        hooks[hook]()
+        hook_func = hooks[hook]
     except KeyError:
         juju_log('INFO',
                  "This charm doesn't know how to handle '{}'.".format(hook))
+    else:
+        hook_func()
 
 
 def install(*pkgs):
@@ -87,6 +90,18 @@ def configure_source():
         'update'
         ]
     subprocess.check_call(cmd)
+
+
+def enable_pocket(pocket):
+    apt_sources = "/etc/apt/sources.list"
+    with open(apt_sources, "r") as sources:
+        lines = sources.readlines()
+    with open(apt_sources, "w") as sources:
+        for line in lines:
+            if pocket in line:
+                sources.write(re.sub('^# deb', 'deb', line))
+            else:
+                sources.write(line)
 
 # Protocols
 TCP = 'TCP'

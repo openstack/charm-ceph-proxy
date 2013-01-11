@@ -115,6 +115,7 @@ def get_mon_hosts():
 def bootstrap_monitor_cluster():
     hostname = utils.get_unit_hostname()
     done = '/var/lib/ceph/mon/ceph-{}/done'.format(hostname)
+    upstart = '/var/lib/ceph/mon/ceph-{}/upstart'.format(hostname)
     secret = utils.config_get('monitor-secret')
     keyring = '/var/lib/ceph/tmp/{}.mon.keyring'.format(hostname)
 
@@ -133,6 +134,8 @@ def bootstrap_monitor_cluster():
                                    '--keyring', keyring])
 
             with open(done, 'w'):
+                pass
+            with open(upstart, 'w'):
                 pass
 
             subprocess.check_call(['start', 'ceph-mon-all-starter'])
