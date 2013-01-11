@@ -20,7 +20,7 @@ import utils
 
 def install_upstart_scripts():
     # Only install upstart configurations for older versions
-    if ceph.get_ceph_version() >= "0.55.1":
+    if ceph.get_ceph_version() < "0.55.1":
         for x in glob.glob('files/upstart/*.conf'):
             shutil.copy(x, '/etc/init/')
 
