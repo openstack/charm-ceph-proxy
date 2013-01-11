@@ -20,8 +20,7 @@ import utils
 
 def install_upstart_scripts():
     # Only install upstart configurations for older versions
-    if ceph.version_compare(ceph.get_ceph_version(),
-                            "0.55.1") < 0:
+    if ceph.get_ceph_version() >= "0.55.1":
         for x in glob.glob('files/upstart/*.conf'):
             shutil.copy(x, '/etc/init/')
 
@@ -112,6 +111,18 @@ def get_mon_hosts():
     return hosts
 
 
+def update_monfs():
+    hostname = utils.get_unit_hostname()
+    monfs = '/var/lib/ceph/mon/ceph-{}'.format(hostname)
+    upstart = '{}/upstart'.format(monfs)
+    if (os.path.exists(monfs) and
+        not os.path.exists(upstart)):
+        # Mark mon as managed by upstart so that
+        # it gets start correctly on reboots
+        with open(upstart, 'w'):
+            pass
+
+
 def bootstrap_monitor_cluster():
     hostname = utils.get_unit_hostname()
     done = '/var/lib/ceph/mon/ceph-{}/done'.format(hostname)
@@ -172,8 +183,7 @@ def osdize(dev):
 
     cmd = ['ceph-disk-prepare']
     # Later versions of ceph support more options
-    if ceph.version_compare(ceph.get_ceph_version(),
-                            "0.55") >= 0:
+    if ceph.get_ceph_version() >= "0.55":
         osd_format = utils.config_get('osd-format')
         if osd_format:
             cmd.append('--fs-type')
@@ -308,6 +318,7 @@ def upgrade_charm():
     utils.juju_log('INFO', 'Begin upgrade-charm hook.')
     emit_cephconf()
     install_upstart_scripts()
+    update_monfs()
     utils.juju_log('INFO', 'End upgrade-charm hook.')
 
 
