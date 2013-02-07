@@ -213,12 +213,8 @@ def get_host_ip(hostname=unit_get('private-address')):
         socket.inet_aton(hostname)
         return hostname
     except socket.error:
-        pass
-    try:
+        # This may throw an NXDOMAIN exception; in which case
+        # things are badly broken so just let it kill the hook
         answers = dns.resolver.query(hostname, 'A')
         if answers:
             return answers[0].address
-    except dns.resolver.NXDOMAIN:
-        pass
-    return None
-
