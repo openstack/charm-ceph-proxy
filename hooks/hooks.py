@@ -19,14 +19,16 @@ import utils
 
 
 def install_upstart_scripts():
-    for x in glob.glob('files/upstart/*.conf'):
-        shutil.copy(x, '/etc/init/')
+    # Only install upstart configurations for older versions
+    if ceph.get_ceph_version() < "0.55.1":
+        for x in glob.glob('files/upstart/*.conf'):
+            shutil.copy(x, '/etc/init/')
 
 
 def install():
     utils.juju_log('INFO', 'Begin install hook.')
     utils.configure_source()
-    utils.install('ceph', 'gdisk', 'ntp')
+    utils.install('ceph', 'gdisk', 'ntp', 'btrfs-tools')
     install_upstart_scripts()
     utils.juju_log('INFO', 'End install hook.')
 
@@ -36,10 +38,13 @@ def emit_cephconf():
         'auth_supported': utils.config_get('auth-supported'),
         'mon_hosts': ' '.join(get_mon_hosts()),
         'fsid': utils.config_get('fsid'),
+        'version': ceph.get_ceph_version()
         }
 
     with open('/etc/ceph/ceph.conf', 'w') as cephconf:
         cephconf.write(utils.render_template('ceph.conf', cephcontext))
+
+JOURNAL_ZAPPED = '/var/lib/ceph/journal_zapped'
 
 
 def config_changed():
@@ -47,23 +52,33 @@ def config_changed():
 
     utils.juju_log('INFO', 'Monitor hosts are ' + repr(get_mon_hosts()))
 
-    fsid = utils.config_get('fsid')
-    if fsid == '':
+    # Pre-flight checks
+    if not utils.config_get('fsid'):
         utils.juju_log('CRITICAL', 'No fsid supplied, cannot proceed.')
         sys.exit(1)
-
-    monitor_secret = utils.config_get('monitor-secret')
-    if monitor_secret == '':
+    if not utils.config_get('monitor-secret'):
         utils.juju_log('CRITICAL',
                        'No monitor-secret supplied, cannot proceed.')
+        sys.exit(1)
+    if utils.config_get('osd-format') not in ceph.DISK_FORMATS:
+        utils.juju_log('CRITICAL',
+                       'Invalid OSD disk format configuration specified')
         sys.exit(1)
 
     emit_cephconf()
 
     e_mountpoint = utils.config_get('ephemeral-unmount')
-    if (e_mountpoint != "" and
+    if (e_mountpoint and
         filesystem_mounted(e_mountpoint)):
         subprocess.call(['umount', e_mountpoint])
+
+    osd_journal = utils.config_get('osd-journal')
+    if (osd_journal and
+        not os.path.exists(JOURNAL_ZAPPED) and
+        os.path.exists(osd_journal)):
+        ceph.zap_disk(osd_journal)
+        with open(JOURNAL_ZAPPED, 'w') as zapped:
+            zapped.write('DONE')
 
     for dev in utils.config_get('osd-devices').split(' '):
         osdize(dev)
@@ -96,9 +111,22 @@ def get_mon_hosts():
     return hosts
 
 
+def update_monfs():
+    hostname = utils.get_unit_hostname()
+    monfs = '/var/lib/ceph/mon/ceph-{}'.format(hostname)
+    upstart = '{}/upstart'.format(monfs)
+    if (os.path.exists(monfs) and
+        not os.path.exists(upstart)):
+        # Mark mon as managed by upstart so that
+        # it gets start correctly on reboots
+        with open(upstart, 'w'):
+            pass
+
+
 def bootstrap_monitor_cluster():
     hostname = utils.get_unit_hostname()
     done = '/var/lib/ceph/mon/ceph-{}/done'.format(hostname)
+    upstart = '/var/lib/ceph/mon/ceph-{}/upstart'.format(hostname)
     secret = utils.config_get('monitor-secret')
     keyring = '/var/lib/ceph/tmp/{}.mon.keyring'.format(hostname)
 
@@ -118,6 +146,8 @@ def bootstrap_monitor_cluster():
 
             with open(done, 'w'):
                 pass
+            with open(upstart, 'w'):
+                pass
 
             subprocess.check_call(['start', 'ceph-mon-all-starter'])
         except:
@@ -127,7 +157,7 @@ def bootstrap_monitor_cluster():
 
 
 def reformat_osd():
-    if utils.config_get('osd-reformat') != "":
+    if utils.config_get('osd-reformat'):
         return True
     else:
         return False
@@ -151,7 +181,23 @@ def osdize(dev):
                        'Looks like {} is in use, skipping.'.format(dev))
         return
 
-    subprocess.call(['ceph-disk-prepare', dev])
+    cmd = ['ceph-disk-prepare']
+    # Later versions of ceph support more options
+    if ceph.get_ceph_version() >= "0.55":
+        osd_format = utils.config_get('osd-format')
+        if osd_format:
+            cmd.append('--fs-type')
+            cmd.append(osd_format)
+        cmd.append(dev)
+        osd_journal = utils.config_get('osd-journal')
+        if (osd_journal and
+            os.path.exists(osd_journal)):
+            cmd.append(osd_journal)
+    else:
+        # Just provide the device - no other options
+        # for older versions of ceph
+        cmd.append(dev)
+    subprocess.call(cmd)
 
 
 def device_mounted(dev):
@@ -272,6 +318,7 @@ def upgrade_charm():
     utils.juju_log('INFO', 'Begin upgrade-charm hook.')
     emit_cephconf()
     install_upstart_scripts()
+    update_monfs()
     utils.juju_log('INFO', 'End upgrade-charm hook.')
 
 

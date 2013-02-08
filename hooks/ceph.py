@@ -12,6 +12,7 @@ import subprocess
 import time
 import utils
 import os
+import apt_pkg as apt
 
 LEADER = 'leader'
 PEON = 'peon'
@@ -84,6 +85,12 @@ def add_bootstrap_hint(peer):
         # Ignore any errors for this call
         subprocess.call(cmd)
 
+DISK_FORMATS = [
+    'xfs',
+    'ext4',
+    'btrfs'
+    ]
+
 
 def is_osd_disk(dev):
     try:
@@ -106,6 +113,11 @@ def rescan_osd_devices():
         ]
 
     subprocess.call(cmd)
+
+
+def zap_disk(dev):
+    cmd = ['sgdisk', '--zap-all', dev]
+    subprocess.check_call(cmd)
 
 
 _bootstrap_keyring = "/var/lib/ceph/bootstrap-osd/ceph.keyring"
@@ -207,3 +219,17 @@ def get_named_key(name, caps=None):
             if 'key' in element:
                 key = element.split(' = ')[1].strip()  # IGNORE:E1103
     return key
+
+
+def get_ceph_version():
+    apt.init()
+    cache = apt.Cache()
+    pkg = cache['ceph']
+    if pkg.current_ver:
+        return apt.upstream_version(pkg.current_ver.ver_str)
+    else:
+        return None
+
+
+def version_compare(a, b):
+    return apt.version_compare(a, b)
