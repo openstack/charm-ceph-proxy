@@ -72,7 +72,7 @@ def configure_source():
         with open('/etc/apt/sources.list.d/cloud-archive.list', 'w') as apt:
             apt.write(CLOUD_ARCHIVE.format(pocket))
     if source.startswith('http:'):
-        with open('/etc/apt/sources.list.d/quantum.list', 'w') as apt:
+        with open('/etc/apt/sources.list.d/ceph.list', 'w') as apt:
             apt.write("deb " + source + "\n")
         key = config_get('key')
         if key:
