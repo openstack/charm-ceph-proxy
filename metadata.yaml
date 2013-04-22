@@ -5,6 +5,7 @@ maintainer: James Page <james.page@ubuntu.com>,
 description: |
  Ceph is a distributed storage and network file system designed to provide
  excellent performance, reliability, and scalability.
+categories: ["misc"]
 peers:
   mon:
     interface: ceph
