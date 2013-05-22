@@ -255,10 +255,12 @@ def notify_client():
     utils.juju_log('INFO', 'Begin notify_client.')
 
     for relid in utils.relation_ids('client'):
-        service_name = utils.relation_list(relid)[0].split('/')[0]
-        utils.relation_set(key=ceph.get_named_key(service_name),
-                           auth=utils.config_get('auth-supported'),
-                           rid=relid)
+        units = utils.relation_list(relid)
+        if len(units) > 0:
+            service_name = units[0].split('/')[0]
+            utils.relation_set(key=ceph.get_named_key(service_name),
+                               auth=utils.config_get('auth-supported'),
+                               rid=relid)
 
     utils.juju_log('INFO', 'End notify_client.')
 
