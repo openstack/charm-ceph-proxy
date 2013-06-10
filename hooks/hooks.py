@@ -28,7 +28,7 @@ def install_upstart_scripts():
 def install():
     utils.juju_log('INFO', 'Begin install hook.')
     utils.configure_source()
-    utils.install('ceph', 'gdisk', 'ntp', 'btrfs-tools', 'python-ceph')
+    utils.install('ceph', 'gdisk', 'ntp', 'btrfs-tools', 'python-ceph', 'xfsprogs')
     install_upstart_scripts()
     utils.juju_log('INFO', 'End install hook.')
 
