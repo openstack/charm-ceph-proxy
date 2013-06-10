@@ -319,6 +319,7 @@ def client_relation():
 def upgrade_charm():
     utils.juju_log('INFO', 'Begin upgrade-charm hook.')
     emit_cephconf()
+    utils.install('xfsprogs')
     install_upstart_scripts()
     update_monfs()
     utils.juju_log('INFO', 'End upgrade-charm hook.')
