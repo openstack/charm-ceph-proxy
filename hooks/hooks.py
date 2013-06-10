@@ -183,7 +183,7 @@ def osdize(dev):
 
     cmd = ['ceph-disk-prepare']
     # Later versions of ceph support more options
-    if ceph.get_ceph_version() >= "0.55":
+    if ceph.get_ceph_version() >= "0.48.3":
         osd_format = utils.config_get('osd-format')
         if osd_format:
             cmd.append('--fs-type')

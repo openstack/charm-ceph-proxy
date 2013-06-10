@@ -52,11 +52,11 @@ options:
     description: |
       Format of filesystem to use for OSD devices; supported formats include:
       .
-        xfs (Default >= 0.55)
-        ext4 (Only option < 0.55)
+        xfs (Default >= 0.48.3)
+        ext4 (Only option < 0.48.3)
         btrfs (experimental and not recommended)
       .
-      Only supported with ceph >= 0.55.      
+      Only supported with ceph >= 0.48.3.
   osd-reformat:
     type: string
     description: |
