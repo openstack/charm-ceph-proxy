@@ -28,7 +28,7 @@ def install_upstart_scripts():
 def install():
     utils.juju_log('INFO', 'Begin install hook.')
     utils.configure_source()
-    utils.install('ceph', 'gdisk', 'ntp', 'btrfs-tools', 'python-ceph')
+    utils.install('ceph', 'gdisk', 'ntp', 'btrfs-tools', 'python-ceph', 'xfsprogs')
     install_upstart_scripts()
     utils.juju_log('INFO', 'End install hook.')
 
@@ -183,7 +183,7 @@ def osdize(dev):
 
     cmd = ['ceph-disk-prepare']
     # Later versions of ceph support more options
-    if ceph.get_ceph_version() >= "0.55":
+    if ceph.get_ceph_version() >= "0.48.3":
         osd_format = utils.config_get('osd-format')
         if osd_format:
             cmd.append('--fs-type')
@@ -319,6 +319,7 @@ def client_relation():
 def upgrade_charm():
     utils.juju_log('INFO', 'Begin upgrade-charm hook.')
     emit_cephconf()
+    utils.install('xfsprogs')
     install_upstart_scripts()
     update_monfs()
     utils.juju_log('INFO', 'End upgrade-charm hook.')
