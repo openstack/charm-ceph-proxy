@@ -125,8 +125,9 @@ def update_monfs():
 
 def bootstrap_monitor_cluster():
     hostname = utils.get_unit_hostname()
-    done = '/var/lib/ceph/mon/ceph-{}/done'.format(hostname)
-    upstart = '/var/lib/ceph/mon/ceph-{}/upstart'.format(hostname)
+    path = '/var/lib/ceph/mon/ceph-{}'.format(hostname)
+    done = '{}/done'.format(path)
+    upstart = '{}/upstart'.format(path)
     secret = utils.config_get('monitor-secret')
     keyring = '/var/lib/ceph/tmp/{}.mon.keyring'.format(hostname)
 
@@ -134,6 +135,10 @@ def bootstrap_monitor_cluster():
         utils.juju_log('INFO',
                        'bootstrap_monitor_cluster: mon already initialized.')
     else:
+        # Ceph >= 0.61.3 needs this for ceph-mon fs creation
+        os.makedirs('/var/run/ceph', mode=0755)
+        os.makedirs(path)
+        # end changes for Ceph >= 0.61.3
         try:
             subprocess.check_call(['ceph-authtool', keyring,
                                    '--create-keyring', '--name=mon.',
