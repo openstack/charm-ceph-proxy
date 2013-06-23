@@ -42,7 +42,6 @@ from utils import (
         get_unit_hostname
         )
 
-
 hooks = Hooks()
 
 
@@ -238,8 +237,8 @@ def filesystem_mounted(fs):
     return subprocess.call(['grep', '-wqs', fs, '/proc/mounts']) == 0
 
 
-@hooks.hook('mon-relation-departed')
-@hooks.hook('mon-relation-joined')
+@hooks.hook('mon-relation-departed',
+            'mon-relation-joined')
 def mon_relation():
     log('Begin mon-relation hook.')
     emit_cephconf()
@@ -361,7 +360,8 @@ def start():
     ceph.rescan_osd_devices()
 
 
-try:
-    hooks.execute(sys.argv)
-except UnregisteredHookError as e:
-    log('Unknown hook {} - skipping.'.format(e))
+if __name__ == '__main__':
+    try:
+        hooks.execute(sys.argv)
+    except UnregisteredHookError as e:
+        log('Unknown hook {} - skipping.'.format(e))
