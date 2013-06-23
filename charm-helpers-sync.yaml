@@ -1,4 +1,4 @@
-branch: ../..//charm-helpers/charm-helpers
+branch: lp:charm-helpers
 destination: hooks/charmhelpers
 include:
     - core
