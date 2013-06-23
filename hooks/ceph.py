@@ -10,13 +10,15 @@
 import json
 import subprocess
 import time
-import utils
+#import utils
 import os
 import apt_pkg as apt
 
 LEADER = 'leader'
 PEON = 'peon'
 QUORUM = [LEADER, PEON]
+
+PACKAGES = ['ceph', 'gdisk', 'ntp', 'btrfs-tools', 'python-ceph', 'xfsprogs']
 
 
 def is_quorum():
