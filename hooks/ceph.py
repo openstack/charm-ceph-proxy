@@ -13,6 +13,9 @@ import time
 #import utils
 import os
 import apt_pkg as apt
+from utils import (
+        get_unit_hostname
+        )
 
 LEADER = 'leader'
 PEON = 'peon'
@@ -22,7 +25,7 @@ PACKAGES = ['ceph', 'gdisk', 'ntp', 'btrfs-tools', 'python-ceph', 'xfsprogs']
 
 
 def is_quorum():
-    asok = "/var/run/ceph/ceph-mon.{}.asok".format(utils.get_unit_hostname())
+    asok = "/var/run/ceph/ceph-mon.{}.asok".format(get_unit_hostname())
     cmd = [
         "ceph",
         "--admin-daemon",
@@ -46,7 +49,7 @@ def is_quorum():
 
 
 def is_leader():
-    asok = "/var/run/ceph/ceph-mon.{}.asok".format(utils.get_unit_hostname())
+    asok = "/var/run/ceph/ceph-mon.{}.asok".format(get_unit_hostname())
     cmd = [
         "ceph",
         "--admin-daemon",
@@ -75,7 +78,7 @@ def wait_for_quorum():
 
 
 def add_bootstrap_hint(peer):
-    asok = "/var/run/ceph/ceph-mon.{}.asok".format(utils.get_unit_hostname())
+    asok = "/var/run/ceph/ceph-mon.{}.asok".format(get_unit_hostname())
     cmd = [
         "ceph",
         "--admin-daemon",
@@ -198,7 +201,7 @@ def get_named_key(name, caps=None):
         '--name', 'mon.',
         '--keyring',
         '/var/lib/ceph/mon/ceph-{}/keyring'.format(
-                                        utils.get_unit_hostname()
+                                        get_unit_hostname()
                                         ),
         'auth', 'get-or-create', 'client.{}'.format(name),
         ]
