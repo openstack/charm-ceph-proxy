@@ -10,37 +10,36 @@
 
 import glob
 import os
-import subprocess
 import shutil
 import sys
 
 import ceph
 #import utils
 from charmhelpers.core.hookenv import (
-        log,
-        ERROR,
-        config,
-        relation_ids,
-        related_units,
-        relation_get,
-        relation_set,
-        remote_unit,
-        Hooks,
-        UnregisteredHookError
-        )
+    log,
+    ERROR,
+    config,
+    relation_ids,
+    related_units,
+    relation_get,
+    relation_set,
+    remote_unit,
+    Hooks,
+    UnregisteredHookError
+)
 from charmhelpers.core.host import (
-        apt_install,
-        apt_update,
-        filter_installed_packages,
-        mkdir
-        )
+    apt_install,
+    apt_update,
+    filter_installed_packages,
+    service_start,
+    umount
+)
 
 from utils import (
-        render_template,
-        configure_source,
-        get_host_ip,
-        get_unit_hostname
-        )
+    render_template,
+    configure_source,
+    get_host_ip,
+)
 
 hooks = Hooks()
 
@@ -68,7 +67,7 @@ def emit_cephconf():
         'mon_hosts': ' '.join(get_mon_hosts()),
         'fsid': config('fsid'),
         'version': ceph.get_ceph_version()
-        }
+    }
 
     with open('/etc/ceph/ceph.conf', 'w') as cephconf:
         cephconf.write(render_template('ceph.conf', cephcontext))
@@ -96,25 +95,23 @@ def config_changed():
     emit_cephconf()
 
     e_mountpoint = config('ephemeral-unmount')
-    if (e_mountpoint and
-        filesystem_mounted(e_mountpoint)):
-        subprocess.call(['umount', e_mountpoint])
+    if e_mountpoint and ceph.filesystem_mounted(e_mountpoint):
+        umount(e_mountpoint)
 
     osd_journal = config('osd-journal')
-    if (osd_journal and
-        not os.path.exists(JOURNAL_ZAPPED) and
-        os.path.exists(osd_journal)):
+    if (osd_journal and not os.path.exists(JOURNAL_ZAPPED)
+            and os.path.exists(osd_journal)):
         ceph.zap_disk(osd_journal)
         with open(JOURNAL_ZAPPED, 'w') as zapped:
             zapped.write('DONE')
 
     for dev in config('osd-devices').split(' '):
-        osdize(dev)
+        ceph.osdize(dev, config('osd-format'), config('osd-journal'),
+                    reformat_osd())
 
     # Support use of single node ceph
-    if (not ceph.is_bootstrapped() and
-        int(config('monitor-count')) == 1):
-        bootstrap_monitor_cluster()
+    if (not ceph.is_bootstrapped() and int(config('monitor-count')) == 1):
+        ceph.bootstrap_monitor_cluster(config('monitor-secret'))
         ceph.wait_for_bootstrap()
 
     if ceph.is_bootstrapped():
@@ -130,62 +127,12 @@ def get_mon_hosts():
     for relid in relation_ids('mon'):
         for unit in related_units(relid):
             hosts.append(
-                '{}:6789'.format(get_host_ip(
-                                    relation_get('private-address',
-                                                 unit, relid)))
-                )
+                '{}:6789'.format(get_host_ip(relation_get('private-address',
+                                             unit, relid)))
+            )
 
     hosts.sort()
     return hosts
-
-
-def update_monfs():
-    hostname = get_unit_hostname()
-    monfs = '/var/lib/ceph/mon/ceph-{}'.format(hostname)
-    upstart = '{}/upstart'.format(monfs)
-    if (os.path.exists(monfs) and
-        not os.path.exists(upstart)):
-        # Mark mon as managed by upstart so that
-        # it gets start correctly on reboots
-        with open(upstart, 'w'):
-            pass
-
-
-def bootstrap_monitor_cluster():
-    hostname = get_unit_hostname()
-    path = '/var/lib/ceph/mon/ceph-{}'.format(hostname)
-    done = '{}/done'.format(path)
-    upstart = '{}/upstart'.format(path)
-    secret = config('monitor-secret')
-    keyring = '/var/lib/ceph/tmp/{}.mon.keyring'.format(hostname)
-
-    if os.path.exists(done):
-        log('bootstrap_monitor_cluster: mon already initialized.')
-    else:
-        # Ceph >= 0.61.3 needs this for ceph-mon fs creation
-        mkdir('/var/run/ceph', perms=0755)
-        mkdir(path)
-        # end changes for Ceph >= 0.61.3
-        try:
-            subprocess.check_call(['ceph-authtool', keyring,
-                                   '--create-keyring', '--name=mon.',
-                                   '--add-key={}'.format(secret),
-                                   '--cap', 'mon', 'allow *'])
-
-            subprocess.check_call(['ceph-mon', '--mkfs',
-                                   '-i', hostname,
-                                   '--keyring', keyring])
-
-            with open(done, 'w'):
-                pass
-            with open(upstart, 'w'):
-                pass
-
-            subprocess.check_call(['start', 'ceph-mon-all-starter'])
-        except:
-            raise
-        finally:
-            os.unlink(keyring)
 
 
 def reformat_osd():
@@ -193,48 +140,6 @@ def reformat_osd():
         return True
     else:
         return False
-
-
-def osdize(dev):
-    if not os.path.exists(dev):
-        log('Path {} does not exist - bailing'.format(dev))
-        return
-
-    if (ceph.is_osd_disk(dev) and not
-        reformat_osd()):
-        log('Looks like {} is already an OSD, skipping.'
-                       .format(dev))
-        return
-
-    if device_mounted(dev):
-        log('Looks like {} is in use, skipping.'.format(dev))
-        return
-
-    cmd = ['ceph-disk-prepare']
-    # Later versions of ceph support more options
-    if ceph.get_ceph_version() >= "0.48.3":
-        osd_format = config('osd-format')
-        if osd_format:
-            cmd.append('--fs-type')
-            cmd.append(osd_format)
-        cmd.append(dev)
-        osd_journal = config('osd-journal')
-        if (osd_journal and
-            os.path.exists(osd_journal)):
-            cmd.append(osd_journal)
-    else:
-        # Just provide the device - no other options
-        # for older versions of ceph
-        cmd.append(dev)
-    subprocess.call(cmd)
-
-
-def device_mounted(dev):
-    return subprocess.call(['grep', '-wqs', dev + '1', '/proc/mounts']) == 0
-
-
-def filesystem_mounted(fs):
-    return subprocess.call(['grep', '-wqs', fs, '/proc/mounts']) == 0
 
 
 @hooks.hook('mon-relation-departed',
@@ -245,15 +150,15 @@ def mon_relation():
 
     moncount = int(config('monitor-count'))
     if len(get_mon_hosts()) >= moncount:
-        bootstrap_monitor_cluster()
+        ceph.bootstrap_monitor_cluster(config('monitor-secret'))
         ceph.wait_for_bootstrap()
         ceph.rescan_osd_devices()
         notify_osds()
         notify_radosgws()
         notify_client()
     else:
-        log('Not enough mons ({}), punting.'.format(
-                            len(get_mon_hosts())))
+        log('Not enough mons ({}), punting.'
+            .format(len(get_mon_hosts())))
 
     log('End mon-relation hook.')
 
@@ -316,7 +221,6 @@ def radosgw_relation():
 
     # Install radosgw for admin tools
     apt_install(packages=filter_installed_packages(['radosgw']))
-
     if ceph.is_quorum():
         log('mon cluster in quorum - providing radosgw with keys')
         relation_set(radosgw_key=ceph.get_radosgw_key(),
@@ -348,7 +252,7 @@ def upgrade_charm():
     emit_cephconf()
     apt_install(packages=filter_installed_packages(ceph.PACKAGES), fatal=True)
     install_upstart_scripts()
-    update_monfs()
+    ceph.update_monfs()
     log('End upgrade-charm hook.')
 
 
@@ -356,7 +260,7 @@ def upgrade_charm():
 def start():
     # In case we're being redeployed to the same machines, try
     # to make sure everything is running as soon as possible.
-    subprocess.call(['start', 'ceph-mon-all'])
+    service_start('ceph-mon-all')
     ceph.rescan_osd_devices()
 
 
