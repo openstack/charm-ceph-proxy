@@ -10,7 +10,6 @@
 import json
 import subprocess
 import time
-#import utils
 import os
 import apt_pkg as apt
 from utils import (
