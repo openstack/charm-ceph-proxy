@@ -55,7 +55,7 @@ def install_upstart_scripts():
 @hooks.hook('install')
 def install():
     log('Begin install hook.')
-    configure_source()
+    configure_source(config('source'))
     apt_update(fatal=True)
     apt_install(packages=ceph.PACKAGES, fatal=True)
     install_upstart_scripts()

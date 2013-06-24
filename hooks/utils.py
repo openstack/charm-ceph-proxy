@@ -7,47 +7,34 @@
 #  Paul Collins <paul.collins@canonical.com>
 #
 
-import os
 import subprocess
 import socket
-import sys
 import re
-
-
-def do_hooks(hooks):
-    hook = os.path.basename(sys.argv[0])
-
-    try:
-        hook_func = hooks[hook]
-    except KeyError:
-        juju_log('INFO',
-                 "This charm doesn't know how to handle '{}'.".format(hook))
-    else:
-        hook_func()
-
-
-def install(*pkgs):
-    cmd = [
-        'apt-get',
-        '-y',
-        'install'
-          ]
-    for pkg in pkgs:
-        cmd.append(pkg)
-    subprocess.check_call(cmd)
+from charmhelpers.core.hookenv import (
+    config,
+    unit_get,
+    cached
+    )
+from charmhelpers.core.host import (
+    apt_install,
+    apt_update,
+    filter_installed_packages
+    )
 
 TEMPLATES_DIR = 'templates'
 
 try:
     import jinja2
 except ImportError:
-    install('python-jinja2')
+    apt_install(filter_installed_packages(['python-jinja2']),
+                fatal=True)
     import jinja2
 
 try:
     import dns.resolver
 except ImportError:
-    install('python-dnspython')
+    apt_install(filter_installed_packages(['python-dnspython']),
+                fatal=True)
     import dns.resolver
 
 
@@ -65,8 +52,7 @@ deb http://ubuntu-cloud.archive.canonical.com/ubuntu {} main
 """
 
 
-def configure_source():
-    source = str(config_get('source'))
+def configure_source(source=None):
     if not source:
         return
     if source.startswith('ppa:'):
@@ -76,14 +62,15 @@ def configure_source():
             ]
         subprocess.check_call(cmd)
     if source.startswith('cloud:'):
-        install('ubuntu-cloud-keyring')
-        pocket = source.split(':')[1]
+        apt_install(filter_installed_packages(['ubuntu-cloud-keyring']),
+                    fatal=True)
+        pocket = source.split(':')[-1]
         with open('/etc/apt/sources.list.d/cloud-archive.list', 'w') as apt:
             apt.write(CLOUD_ARCHIVE.format(pocket))
     if source.startswith('http:'):
         with open('/etc/apt/sources.list.d/ceph.list', 'w') as apt:
             apt.write("deb " + source + "\n")
-        key = config_get('key')
+        key = config('key')
         if key:
             cmd = [
                 'apt-key',
@@ -91,11 +78,7 @@ def configure_source():
                 '--recv-keys', key
                 ]
             subprocess.check_call(cmd)
-    cmd = [
-        'apt-get',
-        'update'
-        ]
-    subprocess.check_call(cmd)
+    apt_update(fatal=True)
 
 
 def enable_pocket(pocket):
@@ -109,105 +92,15 @@ def enable_pocket(pocket):
             else:
                 sources.write(line)
 
-# Protocols
-TCP = 'TCP'
-UDP = 'UDP'
 
-
-def expose(port, protocol='TCP'):
-    cmd = [
-        'open-port',
-        '{}/{}'.format(port, protocol)
-        ]
-    subprocess.check_call(cmd)
-
-
-def juju_log(severity, message):
-    cmd = [
-        'juju-log',
-        '--log-level', severity,
-        message
-        ]
-    subprocess.check_call(cmd)
-
-
-def relation_ids(relation):
-    cmd = [
-        'relation-ids',
-        relation
-        ]
-    return subprocess.check_output(cmd).split()  # IGNORE:E1103
-
-
-def relation_list(rid):
-    cmd = [
-        'relation-list',
-        '-r', rid,
-        ]
-    return subprocess.check_output(cmd).split()  # IGNORE:E1103
-
-
-def relation_get(attribute, unit=None, rid=None):
-    cmd = [
-        'relation-get',
-        ]
-    if rid:
-        cmd.append('-r')
-        cmd.append(rid)
-    cmd.append(attribute)
-    if unit:
-        cmd.append(unit)
-    value = str(subprocess.check_output(cmd)).strip()
-    if value == "":
-        return None
-    else:
-        return value
-
-
-def relation_set(**kwargs):
-    cmd = [
-        'relation-set'
-        ]
-    args = []
-    for k, v in kwargs.items():
-        if k == 'rid':
-            cmd.append('-r')
-            cmd.append(v)
-        else:
-            args.append('{}={}'.format(k, v))
-    cmd += args
-    subprocess.check_call(cmd)
-
-
-def unit_get(attribute):
-    cmd = [
-        'unit-get',
-        attribute
-        ]
-    value = str(subprocess.check_output(cmd)).strip()
-    if value == "":
-        return None
-    else:
-        return value
-
-
-def config_get(attribute):
-    cmd = [
-        'config-get',
-        attribute
-        ]
-    value = str(subprocess.check_output(cmd)).strip()
-    if value == "":
-        return None
-    else:
-        return value
-
-
+@cached
 def get_unit_hostname():
     return socket.gethostname()
 
 
-def get_host_ip(hostname=unit_get('private-address')):
+@cached
+def get_host_ip(hostname=None):
+    hostname = hostname or unit_get('private-address')
     try:
         # Test to see if already an IPv4 address
         socket.inet_aton(hostname)
