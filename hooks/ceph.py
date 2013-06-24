@@ -108,6 +108,7 @@ def is_osd_disk(dev):
         for line in info:
             if line.startswith(
                 'Partition GUID code: 4FBD7E29-9D25-41B8-AFD0-062C0CEFF05D'
+                'Partition GUID code: 4FBD7E29-9D25-41B8-AFD0-062C0CEFF05D'
             ):
                 return True
     except subprocess.CalledProcessError:
@@ -317,7 +318,11 @@ def osdize(dev, osd_format, osd_journal, reformat_osd=False):
         # Just provide the device - no other options
         # for older versions of ceph
         cmd.append(dev)
-    subprocess.call(cmd)
+
+    if reformat_osd:
+        zap_disk(dev)
+
+    subprocess.check_call(cmd)
 
 
 def device_mounted(dev):
