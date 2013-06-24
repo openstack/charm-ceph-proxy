@@ -14,7 +14,7 @@ import os
 import apt_pkg as apt
 from charmhelpers.core.host import (
     mkdir,
-    service_start,
+    service_restart,
     log
 )
 from utils import (
@@ -259,7 +259,7 @@ def bootstrap_monitor_cluster(secret):
             with open(upstart, 'w'):
                 pass
 
-            service_start('ceph-mon-all')
+            service_restart('ceph-mon-all')
         except:
             raise
         finally:

@@ -31,7 +31,7 @@ from charmhelpers.core.host import (
     apt_install,
     apt_update,
     filter_installed_packages,
-    service_start,
+    service_restart,
     umount
 )
 
@@ -260,7 +260,7 @@ def upgrade_charm():
 def start():
     # In case we're being redeployed to the same machines, try
     # to make sure everything is running as soon as possible.
-    service_start('ceph-mon-all')
+    service_restart('ceph-mon-all')
     ceph.rescan_osd_devices()
 
 
