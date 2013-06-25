@@ -17,6 +17,10 @@ from charmhelpers.core.host import (
     service_restart,
     log
 )
+from charmhelpers.contrib.storage.linux.utils import (
+    zap_disk,
+    is_block_device
+)
 from utils import (
     get_unit_hostname
 )
@@ -123,11 +127,6 @@ def rescan_osd_devices():
     ]
 
     subprocess.call(cmd)
-
-
-def zap_disk(dev):
-    cmd = ['sgdisk', '--zap-all', dev]
-    subprocess.check_call(cmd)
 
 
 _bootstrap_keyring = "/var/lib/ceph/bootstrap-osd/ceph.keyring"
@@ -295,6 +294,10 @@ def update_monfs():
 def osdize(dev, osd_format, osd_journal, reformat_osd=False):
     if not os.path.exists(dev):
         log('Path {} does not exist - bailing'.format(dev))
+        return
+
+    if not is_block_device(dev):
+        log('Path {} is not a block device - bailing'.format(dev))
         return
 
     if (is_osd_disk(dev) and not reformat_osd):

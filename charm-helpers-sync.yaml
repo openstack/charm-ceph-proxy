@@ -3,3 +3,5 @@ destination: hooks/charmhelpers
 include:
     - core
     - fetch
+    - contrib.storage.linux:
+        - utils

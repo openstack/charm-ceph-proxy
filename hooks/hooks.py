@@ -14,18 +14,15 @@ import shutil
 import sys
 
 import ceph
-#import utils
 from charmhelpers.core.hookenv import (
-    log,
-    ERROR,
+    log, ERROR,
     config,
     relation_ids,
     related_units,
     relation_get,
     relation_set,
     remote_unit,
-    Hooks,
-    UnregisteredHookError
+    Hooks, UnregisteredHookError
 )
 from charmhelpers.core.host import (
     apt_install,

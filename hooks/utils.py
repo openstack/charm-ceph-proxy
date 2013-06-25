@@ -7,17 +7,14 @@
 #  Paul Collins <paul.collins@canonical.com>
 #
 
-import subprocess
 import socket
 import re
 from charmhelpers.core.hookenv import (
-    config,
     unit_get,
     cached
 )
 from charmhelpers.core.host import (
     apt_install,
-    apt_update,
     filter_installed_packages
 )
 
@@ -43,40 +40,6 @@ def render_template(template_name, context, template_dir=TEMPLATES_DIR):
         loader=jinja2.FileSystemLoader(template_dir))
     template = templates.get_template(template_name)
     return template.render(context)
-
-
-CLOUD_ARCHIVE = """ # Ubuntu Cloud Archive
-deb http://ubuntu-cloud.archive.canonical.com/ubuntu {} main
-"""
-
-
-def configure_source(source=None):
-    if not source:
-        return
-    if source.startswith('ppa:'):
-        cmd = [
-            'add-apt-repository',
-            source
-        ]
-        subprocess.check_call(cmd)
-    if source.startswith('cloud:'):
-        apt_install(filter_installed_packages(['ubuntu-cloud-keyring']),
-                    fatal=True)
-        pocket = source.split(':')[-1]
-        with open('/etc/apt/sources.list.d/cloud-archive.list', 'w') as apt:
-            apt.write(CLOUD_ARCHIVE.format(pocket))
-    if source.startswith('http:'):
-        with open('/etc/apt/sources.list.d/ceph.list', 'w') as apt:
-            apt.write("deb " + source + "\n")
-        key = config('key')
-        if key:
-            cmd = [
-                'apt-key',
-                'adv', '--keyserver keyserver.ubuntu.com',
-                '--recv-keys', key
-            ]
-            subprocess.check_call(cmd)
-    apt_update(fatal=True)
 
 
 def enable_pocket(pocket):
