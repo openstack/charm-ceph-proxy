@@ -15,28 +15,28 @@ are provided:
     fsid:
         uuid specific to a ceph cluster used to ensure that different
         clusters don't get mixed up - use `uuid` to generate one.
-             
+
     monitor-secret: 
         a ceph generated key used by the daemons that manage to cluster
         to control security.  You can use the ceph-authtool command to 
         generate one:
-          
+
             ceph-authtool /dev/stdout --name=mon. --gen-key
-              
+
 These two pieces of configuration must NOT be changed post bootstrap; attempting
 todo this will cause a reconfiguration error and new service units will not join
 the existing ceph cluster.
-        
+
 The charm also supports specification of the storage devices to use in the ceph
 cluster.
 
     osd-devices:
         A list of devices that the charm will attempt to detect, initialise and
         activate as ceph storage.
-        
+
         This this can be a superset of the actual storage devices presented to
         each service unit and can be changed post ceph bootstrap using `juju set`.
-        
+
 At a minimum you must provide a juju config file during initial deployment
 with the fsid and monitor-secret options (contents of cepy.yaml below):
 
@@ -44,7 +44,7 @@ with the fsid and monitor-secret options (contents of cepy.yaml below):
         fsid: ecbb8960-0e21-11e2-b495-83a88f44db01 
         monitor-secret: AQD1P2xQiKglDhAA4NGUF5j38Mhq56qwz+45wg==
         osd-devices: /dev/vdb /dev/vdc /dev/vdd /dev/vde
-        
+
 Specifying the osd-devices to use is also a good idea.
 
 Boot things up by using:
@@ -62,7 +62,7 @@ Author: Paul Collins <paul.collins@canonical.com>,
  James Page <james.page@ubuntu.com>
 Report bugs at: http://bugs.launchpad.net/charms/+source/ceph/+filebug
 Location: http://jujucharms.com/charms/ceph
-    
+
 Technical Bootnotes
 ===================
 
@@ -89,4 +89,4 @@ all OSDs run on nodes that also run mon, we don't need this and did not
 implement it.
 
 See http://ceph.com/docs/master/dev/mon-bootstrap/ for more information on Ceph
-monitor cluster deployment strategies and pitfalls. 
+monitor cluster deployment strategies and pitfalls.

@@ -10,23 +10,36 @@
 import json
 import subprocess
 import time
-import utils
 import os
 import apt_pkg as apt
+from charmhelpers.core.host import (
+    mkdir,
+    service_restart,
+    log
+)
+from charmhelpers.contrib.storage.linux.utils import (
+    zap_disk,
+    is_block_device
+)
+from utils import (
+    get_unit_hostname
+)
 
 LEADER = 'leader'
 PEON = 'peon'
 QUORUM = [LEADER, PEON]
 
+PACKAGES = ['ceph', 'gdisk', 'ntp', 'btrfs-tools', 'python-ceph', 'xfsprogs']
+
 
 def is_quorum():
-    asok = "/var/run/ceph/ceph-mon.{}.asok".format(utils.get_unit_hostname())
+    asok = "/var/run/ceph/ceph-mon.{}.asok".format(get_unit_hostname())
     cmd = [
         "ceph",
         "--admin-daemon",
         asok,
         "mon_status"
-        ]
+    ]
     if os.path.exists(asok):
         try:
             result = json.loads(subprocess.check_output(cmd))
@@ -44,13 +57,13 @@ def is_quorum():
 
 
 def is_leader():
-    asok = "/var/run/ceph/ceph-mon.{}.asok".format(utils.get_unit_hostname())
+    asok = "/var/run/ceph/ceph-mon.{}.asok".format(get_unit_hostname())
     cmd = [
         "ceph",
         "--admin-daemon",
         asok,
         "mon_status"
-        ]
+    ]
     if os.path.exists(asok):
         try:
             result = json.loads(subprocess.check_output(cmd))
@@ -73,14 +86,14 @@ def wait_for_quorum():
 
 
 def add_bootstrap_hint(peer):
-    asok = "/var/run/ceph/ceph-mon.{}.asok".format(utils.get_unit_hostname())
+    asok = "/var/run/ceph/ceph-mon.{}.asok".format(get_unit_hostname())
     cmd = [
         "ceph",
         "--admin-daemon",
         asok,
         "add_bootstrap_peer_hint",
         peer
-        ]
+    ]
     if os.path.exists(asok):
         # Ignore any errors for this call
         subprocess.call(cmd)
@@ -89,7 +102,7 @@ DISK_FORMATS = [
     'xfs',
     'ext4',
     'btrfs'
-    ]
+]
 
 
 def is_osd_disk(dev):
@@ -99,7 +112,7 @@ def is_osd_disk(dev):
         for line in info:
             if line.startswith(
                 'Partition GUID code: 4FBD7E29-9D25-41B8-AFD0-062C0CEFF05D'
-                ):
+            ):
                 return True
     except subprocess.CalledProcessError:
         pass
@@ -110,14 +123,9 @@ def rescan_osd_devices():
     cmd = [
         'udevadm', 'trigger',
         '--subsystem-match=block', '--action=add'
-        ]
+    ]
 
     subprocess.call(cmd)
-
-
-def zap_disk(dev):
-    cmd = ['sgdisk', '--zap-all', dev]
-    subprocess.check_call(cmd)
 
 
 _bootstrap_keyring = "/var/lib/ceph/bootstrap-osd/ceph.keyring"
@@ -140,7 +148,7 @@ def import_osd_bootstrap_key(key):
             '--create-keyring',
             '--name=client.bootstrap-osd',
             '--add-key={}'.format(key)
-            ]
+        ]
         subprocess.check_call(cmd)
 
 # OSD caps taken from ceph-create-keys
@@ -148,10 +156,10 @@ _osd_bootstrap_caps = {
     'mon': [
         'allow command osd create ...',
         'allow command osd crush set ...',
-       r'allow command auth add * osd allow\ * mon allow\ rwx',
+        r'allow command auth add * osd allow\ * mon allow\ rwx',
         'allow command mon getmap'
-        ]
-    }
+    ]
+}
 
 
 def get_osd_bootstrap_key():
@@ -169,14 +177,14 @@ def import_radosgw_key(key):
             '--create-keyring',
             '--name=client.radosgw.gateway',
             '--add-key={}'.format(key)
-            ]
+        ]
         subprocess.check_call(cmd)
 
 # OSD caps taken from ceph-create-keys
 _radosgw_caps = {
     'mon': ['allow r'],
     'osd': ['allow rwx']
-    }
+}
 
 
 def get_radosgw_key():
@@ -186,7 +194,7 @@ def get_radosgw_key():
 _default_caps = {
     'mon': ['allow r'],
     'osd': ['allow rwx']
-    }
+}
 
 
 def get_named_key(name, caps=None):
@@ -196,16 +204,16 @@ def get_named_key(name, caps=None):
         '--name', 'mon.',
         '--keyring',
         '/var/lib/ceph/mon/ceph-{}/keyring'.format(
-                                        utils.get_unit_hostname()
-                                        ),
+            get_unit_hostname()
+        ),
         'auth', 'get-or-create', 'client.{}'.format(name),
-        ]
+    ]
     # Add capabilities
     for subsystem, subcaps in caps.iteritems():
         cmd.extend([
             subsystem,
             '; '.join(subcaps),
-            ])
+        ])
     output = subprocess.check_output(cmd).strip()  # IGNORE:E1103
     # get-or-create appears to have different output depending
     # on whether its 'get' or 'create'
@@ -221,6 +229,42 @@ def get_named_key(name, caps=None):
     return key
 
 
+def bootstrap_monitor_cluster(secret):
+    hostname = get_unit_hostname()
+    path = '/var/lib/ceph/mon/ceph-{}'.format(hostname)
+    done = '{}/done'.format(path)
+    upstart = '{}/upstart'.format(path)
+    keyring = '/var/lib/ceph/tmp/{}.mon.keyring'.format(hostname)
+
+    if os.path.exists(done):
+        log('bootstrap_monitor_cluster: mon already initialized.')
+    else:
+        # Ceph >= 0.61.3 needs this for ceph-mon fs creation
+        mkdir('/var/run/ceph', perms=0755)
+        mkdir(path)
+        # end changes for Ceph >= 0.61.3
+        try:
+            subprocess.check_call(['ceph-authtool', keyring,
+                                   '--create-keyring', '--name=mon.',
+                                   '--add-key={}'.format(secret),
+                                   '--cap', 'mon', 'allow *'])
+
+            subprocess.check_call(['ceph-mon', '--mkfs',
+                                   '-i', hostname,
+                                   '--keyring', keyring])
+
+            with open(done, 'w'):
+                pass
+            with open(upstart, 'w'):
+                pass
+
+            service_restart('ceph-mon-all')
+        except:
+            raise
+        finally:
+            os.unlink(keyring)
+
+
 def get_ceph_version():
     apt.init()
     cache = apt.Cache()
@@ -233,3 +277,59 @@ def get_ceph_version():
 
 def version_compare(a, b):
     return apt.version_compare(a, b)
+
+
+def update_monfs():
+    hostname = get_unit_hostname()
+    monfs = '/var/lib/ceph/mon/ceph-{}'.format(hostname)
+    upstart = '{}/upstart'.format(monfs)
+    if os.path.exists(monfs) and not os.path.exists(upstart):
+        # Mark mon as managed by upstart so that
+        # it gets start correctly on reboots
+        with open(upstart, 'w'):
+            pass
+
+
+def osdize(dev, osd_format, osd_journal, reformat_osd=False):
+    if not os.path.exists(dev):
+        log('Path {} does not exist - bailing'.format(dev))
+        return
+
+    if not is_block_device(dev):
+        log('Path {} is not a block device - bailing'.format(dev))
+        return
+
+    if (is_osd_disk(dev) and not reformat_osd):
+        log('Looks like {} is already an OSD, skipping.'.format(dev))
+        return
+
+    if device_mounted(dev):
+        log('Looks like {} is in use, skipping.'.format(dev))
+        return
+
+    cmd = ['ceph-disk-prepare']
+    # Later versions of ceph support more options
+    if get_ceph_version() >= "0.48.3":
+        if osd_format:
+            cmd.append('--fs-type')
+            cmd.append(osd_format)
+        cmd.append(dev)
+        if osd_journal and os.path.exists(osd_journal):
+            cmd.append(osd_journal)
+    else:
+        # Just provide the device - no other options
+        # for older versions of ceph
+        cmd.append(dev)
+
+    if reformat_osd:
+        zap_disk(dev)
+
+    subprocess.check_call(cmd)
+
+
+def device_mounted(dev):
+    return subprocess.call(['grep', '-wqs', dev + '1', '/proc/mounts']) == 0
+
+
+def filesystem_mounted(fs):
+    return subprocess.call(['grep', '-wqs', fs, '/proc/mounts']) == 0

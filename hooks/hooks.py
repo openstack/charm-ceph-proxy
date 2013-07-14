@@ -10,12 +10,35 @@
 
 import glob
 import os
-import subprocess
 import shutil
 import sys
 
 import ceph
-import utils
+from charmhelpers.core.hookenv import (
+    log, ERROR,
+    config,
+    relation_ids,
+    related_units,
+    relation_get,
+    relation_set,
+    remote_unit,
+    Hooks, UnregisteredHookError
+)
+from charmhelpers.core.host import (
+    apt_install,
+    apt_update,
+    filter_installed_packages,
+    service_restart,
+    umount
+)
+from charmhelpers.fetch import add_source
+
+from utils import (
+    render_template,
+    get_host_ip,
+)
+
+hooks = Hooks()
 
 
 def install_upstart_scripts():
@@ -25,328 +48,221 @@ def install_upstart_scripts():
             shutil.copy(x, '/etc/init/')
 
 
+@hooks.hook('install')
 def install():
-    utils.juju_log('INFO', 'Begin install hook.')
-    utils.configure_source()
-    utils.install('ceph', 'gdisk', 'ntp', 'btrfs-tools', 'python-ceph', 'xfsprogs')
+    log('Begin install hook.')
+    add_source(config('source'), config('key'))
+    apt_update(fatal=True)
+    apt_install(packages=ceph.PACKAGES, fatal=True)
     install_upstart_scripts()
-    utils.juju_log('INFO', 'End install hook.')
+    log('End install hook.')
 
 
 def emit_cephconf():
     cephcontext = {
-        'auth_supported': utils.config_get('auth-supported'),
+        'auth_supported': config('auth-supported'),
         'mon_hosts': ' '.join(get_mon_hosts()),
-        'fsid': utils.config_get('fsid'),
+        'fsid': config('fsid'),
         'version': ceph.get_ceph_version()
-        }
+    }
 
     with open('/etc/ceph/ceph.conf', 'w') as cephconf:
-        cephconf.write(utils.render_template('ceph.conf', cephcontext))
+        cephconf.write(render_template('ceph.conf', cephcontext))
 
 JOURNAL_ZAPPED = '/var/lib/ceph/journal_zapped'
 
 
+@hooks.hook('config-changed')
 def config_changed():
-    utils.juju_log('INFO', 'Begin config-changed hook.')
+    log('Begin config-changed hook.')
 
-    utils.juju_log('INFO', 'Monitor hosts are ' + repr(get_mon_hosts()))
+    log('Monitor hosts are ' + repr(get_mon_hosts()))
 
     # Pre-flight checks
-    if not utils.config_get('fsid'):
-        utils.juju_log('CRITICAL', 'No fsid supplied, cannot proceed.')
+    if not config('fsid'):
+        log('No fsid supplied, cannot proceed.', level=ERROR)
         sys.exit(1)
-    if not utils.config_get('monitor-secret'):
-        utils.juju_log('CRITICAL',
-                       'No monitor-secret supplied, cannot proceed.')
+    if not config('monitor-secret'):
+        log('No monitor-secret supplied, cannot proceed.', level=ERROR)
         sys.exit(1)
-    if utils.config_get('osd-format') not in ceph.DISK_FORMATS:
-        utils.juju_log('CRITICAL',
-                       'Invalid OSD disk format configuration specified')
+    if config('osd-format') not in ceph.DISK_FORMATS:
+        log('Invalid OSD disk format configuration specified', level=ERROR)
         sys.exit(1)
 
     emit_cephconf()
 
-    e_mountpoint = utils.config_get('ephemeral-unmount')
-    if (e_mountpoint and
-        filesystem_mounted(e_mountpoint)):
-        subprocess.call(['umount', e_mountpoint])
+    e_mountpoint = config('ephemeral-unmount')
+    if e_mountpoint and ceph.filesystem_mounted(e_mountpoint):
+        umount(e_mountpoint)
 
-    osd_journal = utils.config_get('osd-journal')
-    if (osd_journal and
-        not os.path.exists(JOURNAL_ZAPPED) and
-        os.path.exists(osd_journal)):
+    osd_journal = config('osd-journal')
+    if (osd_journal and not os.path.exists(JOURNAL_ZAPPED)
+            and os.path.exists(osd_journal)):
         ceph.zap_disk(osd_journal)
         with open(JOURNAL_ZAPPED, 'w') as zapped:
             zapped.write('DONE')
 
-    for dev in utils.config_get('osd-devices').split(' '):
-        osdize(dev)
+    for dev in config('osd-devices').split(' '):
+        ceph.osdize(dev, config('osd-format'), config('osd-journal'),
+                    reformat_osd())
 
     # Support use of single node ceph
-    if (not ceph.is_bootstrapped() and
-        int(utils.config_get('monitor-count')) == 1):
-        bootstrap_monitor_cluster()
+    if (not ceph.is_bootstrapped() and int(config('monitor-count')) == 1):
+        ceph.bootstrap_monitor_cluster(config('monitor-secret'))
         ceph.wait_for_bootstrap()
 
     if ceph.is_bootstrapped():
         ceph.rescan_osd_devices()
 
-    utils.juju_log('INFO', 'End config-changed hook.')
+    log('End config-changed hook.')
 
 
 def get_mon_hosts():
     hosts = []
-    hosts.append('{}:6789'.format(utils.get_host_ip()))
+    hosts.append('{}:6789'.format(get_host_ip()))
 
-    for relid in utils.relation_ids('mon'):
-        for unit in utils.relation_list(relid):
+    for relid in relation_ids('mon'):
+        for unit in related_units(relid):
             hosts.append(
-                '{}:6789'.format(utils.get_host_ip(
-                                    utils.relation_get('private-address',
-                                                       unit, relid)))
-                )
+                '{}:6789'.format(get_host_ip(relation_get('private-address',
+                                             unit, relid)))
+            )
 
     hosts.sort()
     return hosts
 
 
-def update_monfs():
-    hostname = utils.get_unit_hostname()
-    monfs = '/var/lib/ceph/mon/ceph-{}'.format(hostname)
-    upstart = '{}/upstart'.format(monfs)
-    if (os.path.exists(monfs) and
-        not os.path.exists(upstart)):
-        # Mark mon as managed by upstart so that
-        # it gets start correctly on reboots
-        with open(upstart, 'w'):
-            pass
-
-
-def bootstrap_monitor_cluster():
-    hostname = utils.get_unit_hostname()
-    path = '/var/lib/ceph/mon/ceph-{}'.format(hostname)
-    done = '{}/done'.format(path)
-    upstart = '{}/upstart'.format(path)
-    secret = utils.config_get('monitor-secret')
-    keyring = '/var/lib/ceph/tmp/{}.mon.keyring'.format(hostname)
-
-    if os.path.exists(done):
-        utils.juju_log('INFO',
-                       'bootstrap_monitor_cluster: mon already initialized.')
-    else:
-        # Ceph >= 0.61.3 needs this for ceph-mon fs creation
-        os.makedirs('/var/run/ceph', mode=0755)
-        os.makedirs(path)
-        # end changes for Ceph >= 0.61.3
-        try:
-            subprocess.check_call(['ceph-authtool', keyring,
-                                   '--create-keyring', '--name=mon.',
-                                   '--add-key={}'.format(secret),
-                                   '--cap', 'mon', 'allow *'])
-
-            subprocess.check_call(['ceph-mon', '--mkfs',
-                                   '-i', hostname,
-                                   '--keyring', keyring])
-
-            with open(done, 'w'):
-                pass
-            with open(upstart, 'w'):
-                pass
-
-            subprocess.check_call(['start', 'ceph-mon-all-starter'])
-        except:
-            raise
-        finally:
-            os.unlink(keyring)
-
-
 def reformat_osd():
-    if utils.config_get('osd-reformat'):
+    if config('osd-reformat'):
         return True
     else:
         return False
 
 
-def osdize(dev):
-    if not os.path.exists(dev):
-        utils.juju_log('INFO',
-                       'Path {} does not exist - bailing'.format(dev))
-        return
-
-    if (ceph.is_osd_disk(dev) and not
-        reformat_osd()):
-        utils.juju_log('INFO',
-                       'Looks like {} is already an OSD, skipping.'
-                       .format(dev))
-        return
-
-    if device_mounted(dev):
-        utils.juju_log('INFO',
-                       'Looks like {} is in use, skipping.'.format(dev))
-        return
-
-    cmd = ['ceph-disk-prepare']
-    # Later versions of ceph support more options
-    if ceph.get_ceph_version() >= "0.48.3":
-        osd_format = utils.config_get('osd-format')
-        if osd_format:
-            cmd.append('--fs-type')
-            cmd.append(osd_format)
-        cmd.append(dev)
-        osd_journal = utils.config_get('osd-journal')
-        if (osd_journal and
-            os.path.exists(osd_journal)):
-            cmd.append(osd_journal)
-    else:
-        # Just provide the device - no other options
-        # for older versions of ceph
-        cmd.append(dev)
-    subprocess.call(cmd)
-
-
-def device_mounted(dev):
-    return subprocess.call(['grep', '-wqs', dev + '1', '/proc/mounts']) == 0
-
-
-def filesystem_mounted(fs):
-    return subprocess.call(['grep', '-wqs', fs, '/proc/mounts']) == 0
-
-
+@hooks.hook('mon-relation-departed',
+            'mon-relation-joined')
 def mon_relation():
-    utils.juju_log('INFO', 'Begin mon-relation hook.')
+    log('Begin mon-relation hook.')
     emit_cephconf()
 
-    moncount = int(utils.config_get('monitor-count'))
+    moncount = int(config('monitor-count'))
     if len(get_mon_hosts()) >= moncount:
-        bootstrap_monitor_cluster()
+        ceph.bootstrap_monitor_cluster(config('monitor-secret'))
         ceph.wait_for_bootstrap()
         ceph.rescan_osd_devices()
         notify_osds()
         notify_radosgws()
         notify_client()
     else:
-        utils.juju_log('INFO',
-                       'Not enough mons ({}), punting.'.format(
-                            len(get_mon_hosts())))
+        log('Not enough mons ({}), punting.'
+            .format(len(get_mon_hosts())))
 
-    utils.juju_log('INFO', 'End mon-relation hook.')
+    log('End mon-relation hook.')
 
 
 def notify_osds():
-    utils.juju_log('INFO', 'Begin notify_osds.')
+    log('Begin notify_osds.')
 
-    for relid in utils.relation_ids('osd'):
-        utils.relation_set(fsid=utils.config_get('fsid'),
-                           osd_bootstrap_key=ceph.get_osd_bootstrap_key(),
-                           auth=utils.config_get('auth-supported'),
-                           rid=relid)
+    for relid in relation_ids('osd'):
+        relation_set(relation_id=relid,
+                     fsid=config('fsid'),
+                     osd_bootstrap_key=ceph.get_osd_bootstrap_key(),
+                     auth=config('auth-supported'))
 
-    utils.juju_log('INFO', 'End notify_osds.')
+    log('End notify_osds.')
 
 
 def notify_radosgws():
-    utils.juju_log('INFO', 'Begin notify_radosgws.')
+    log('Begin notify_radosgws.')
 
-    for relid in utils.relation_ids('radosgw'):
-        utils.relation_set(radosgw_key=ceph.get_radosgw_key(),
-                           auth=utils.config_get('auth-supported'),
-                           rid=relid)
+    for relid in relation_ids('radosgw'):
+        relation_set(relation_id=relid,
+                     radosgw_key=ceph.get_radosgw_key(),
+                     auth=config('auth-supported'))
 
-    utils.juju_log('INFO', 'End notify_radosgws.')
+    log('End notify_radosgws.')
 
 
 def notify_client():
-    utils.juju_log('INFO', 'Begin notify_client.')
+    log('Begin notify_client.')
 
-    for relid in utils.relation_ids('client'):
-        units = utils.relation_list(relid)
+    for relid in relation_ids('client'):
+        units = related_units(relid)
         if len(units) > 0:
             service_name = units[0].split('/')[0]
-            utils.relation_set(key=ceph.get_named_key(service_name),
-                               auth=utils.config_get('auth-supported'),
-                               rid=relid)
+            relation_set(relation_id=relid,
+                         key=ceph.get_named_key(service_name),
+                         auth=config('auth-supported'))
 
-    utils.juju_log('INFO', 'End notify_client.')
+    log('End notify_client.')
 
 
+@hooks.hook('osd-relation-joined')
 def osd_relation():
-    utils.juju_log('INFO', 'Begin osd-relation hook.')
+    log('Begin osd-relation hook.')
 
     if ceph.is_quorum():
-        utils.juju_log('INFO',
-                       'mon cluster in quorum - providing fsid & keys')
-        utils.relation_set(fsid=utils.config_get('fsid'),
-                           osd_bootstrap_key=ceph.get_osd_bootstrap_key(),
-                           auth=utils.config_get('auth-supported'))
+        log('mon cluster in quorum - providing fsid & keys')
+        relation_set(fsid=config('fsid'),
+                     osd_bootstrap_key=ceph.get_osd_bootstrap_key(),
+                     auth=config('auth-supported'))
     else:
-        utils.juju_log('INFO',
-                       'mon cluster not in quorum - deferring fsid provision')
+        log('mon cluster not in quorum - deferring fsid provision')
 
-    utils.juju_log('INFO', 'End osd-relation hook.')
+    log('End osd-relation hook.')
 
 
+@hooks.hook('radosgw-relation-joined')
 def radosgw_relation():
-    utils.juju_log('INFO', 'Begin radosgw-relation hook.')
+    log('Begin radosgw-relation hook.')
 
-    utils.install('radosgw')  # Install radosgw for admin tools
-
+    # Install radosgw for admin tools
+    apt_install(packages=filter_installed_packages(['radosgw']))
     if ceph.is_quorum():
-        utils.juju_log('INFO',
-                       'mon cluster in quorum - \
-                        providing radosgw with keys')
-        utils.relation_set(radosgw_key=ceph.get_radosgw_key(),
-                           auth=utils.config_get('auth-supported'))
+        log('mon cluster in quorum - providing radosgw with keys')
+        relation_set(radosgw_key=ceph.get_radosgw_key(),
+                     auth=config('auth-supported'))
     else:
-        utils.juju_log('INFO',
-                       'mon cluster not in quorum - deferring key provision')
+        log('mon cluster not in quorum - deferring key provision')
 
-    utils.juju_log('INFO', 'End radosgw-relation hook.')
+    log('End radosgw-relation hook.')
 
 
+@hooks.hook('client-relation-joined')
 def client_relation():
-    utils.juju_log('INFO', 'Begin client-relation hook.')
+    log('Begin client-relation hook.')
 
     if ceph.is_quorum():
-        utils.juju_log('INFO',
-                       'mon cluster in quorum - \
-                        providing client with keys')
-        service_name = os.environ['JUJU_REMOTE_UNIT'].split('/')[0]
-        utils.relation_set(key=ceph.get_named_key(service_name),
-                           auth=utils.config_get('auth-supported'))
+        log('mon cluster in quorum - providing client with keys')
+        service_name = remote_unit().split('/')[0]
+        relation_set(key=ceph.get_named_key(service_name),
+                     auth=config('auth-supported'))
     else:
-        utils.juju_log('INFO',
-                       'mon cluster not in quorum - deferring key provision')
+        log('mon cluster not in quorum - deferring key provision')
 
-    utils.juju_log('INFO', 'End client-relation hook.')
+    log('End client-relation hook.')
 
 
+@hooks.hook('upgrade-charm')
 def upgrade_charm():
-    utils.juju_log('INFO', 'Begin upgrade-charm hook.')
+    log('Begin upgrade-charm hook.')
     emit_cephconf()
-    utils.install('xfsprogs')
+    apt_install(packages=filter_installed_packages(ceph.PACKAGES), fatal=True)
     install_upstart_scripts()
-    update_monfs()
-    utils.juju_log('INFO', 'End upgrade-charm hook.')
+    ceph.update_monfs()
+    log('End upgrade-charm hook.')
 
 
+@hooks.hook('start')
 def start():
     # In case we're being redeployed to the same machines, try
     # to make sure everything is running as soon as possible.
-    subprocess.call(['start', 'ceph-mon-all-starter'])
+    service_restart('ceph-mon-all')
     ceph.rescan_osd_devices()
 
 
-utils.do_hooks({
-        'config-changed': config_changed,
-        'install': install,
-        'mon-relation-departed': mon_relation,
-        'mon-relation-joined': mon_relation,
-        'osd-relation-joined': osd_relation,
-        'radosgw-relation-joined': radosgw_relation,
-        'client-relation-joined': client_relation,
-        'start': start,
-        'upgrade-charm': upgrade_charm,
-        })
-
-sys.exit(0)
+if __name__ == '__main__':
+    try:
+        hooks.execute(sys.argv)
+    except UnregisteredHookError as e:
+        log('Unknown hook {} - skipping.'.format(e))
