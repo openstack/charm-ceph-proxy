@@ -24,11 +24,11 @@ are provided:
             ceph-authtool /dev/stdout --name=mon. --gen-key
 
 These two pieces of configuration must NOT be changed post bootstrap; attempting
-todo this will cause a reconfiguration error and new service units will not join
+to do this will cause a reconfiguration error and new service units will not join
 the existing ceph cluster.
 
-The charm also supports specification of the storage devices to use in the ceph
-cluster.
+The charm also supports the specification of storage devices to be used in the 
+ceph cluster.
 
     osd-devices:
         A list of devices that the charm will attempt to detect, initialise and
@@ -72,18 +72,18 @@ and osd.
 
 This charm uses the new-style Ceph deployment as reverse-engineered from the
 Chef cookbook at https://github.com/ceph/ceph-cookbooks, although we selected
-a different strategy to form the monitor cluster.  Since we don't know the
-names *or* addresses of the machines in advance, we use the relation-joined
+a different strategy to form the monitor cluster. Since we don't know the
+names *or* addresses of the machines in advance, we use the _relation-joined_
 hook to wait for all three nodes to come up, and then write their addresses
 to ceph.conf in the "mon host" parameter. After we initialize the monitor
 cluster a quorum forms quickly, and OSD bringup proceeds.
 
-The osds use so-called "OSD hotplugging".  ceph-disk-prepare is used to create
-the filesystems with a special GPT partition type.  udev is set up to mounti
-such filesystems and start the osd daemons as their storage becomes visible to
-the system (or after "udevadm trigger").
+The osds use so-called "OSD hotplugging". **ceph-disk-prepare** is used to
+create the filesystems with a special GPT partition type. *udev* is set up
+to mount such filesystems and start the osd daemons as their storage becomes
+visible to the system (or after "udevadm trigger").
 
-The Chef cookbook above performs some extra steps to generate an OSD
+The Chef cookbook mentioned above performs some extra steps to generate an OSD
 bootstrapping key and propagate it to the other nodes in the cluster. Since
 all OSDs run on nodes that also run mon, we don't need this and did not
 implement it.
