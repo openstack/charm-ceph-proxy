@@ -27,15 +27,20 @@ These two pieces of configuration must NOT be changed post bootstrap; attempting
 to do this will cause a reconfiguration error and new service units will not join
 the existing ceph cluster.
 
-The charm also supports the specification of storage devices to be used in the 
+The charm also supports the specification of storage devices to be used in the
 ceph cluster.
 
     osd-devices:
         A list of devices that the charm will attempt to detect, initialise and
         activate as ceph storage.
 
-        This this can be a superset of the actual storage devices presented to
-        each service unit and can be changed post ceph bootstrap using `juju set`.
+        This can be a superset of the actual storage devices presented to each
+        service unit and can be changed post ceph bootstrap using `juju set`.
+
+        The full path of each device must be provided, e.g. /dev/vdb.
+
+        For Ceph >= 0.56.6 (Raring or the Grizzly Cloud Archive) use of
+        directories instead of devices is also supported.
 
 At a minimum you must provide a juju config file during initial deployment
 with the fsid and monitor-secret options (contents of cepy.yaml below):
@@ -65,10 +70,6 @@ Location: http://jujucharms.com/charms/ceph
 
 Technical Bootnotes
 ===================
-
-This charm is currently deliberately inflexible and potentially destructive.
-It is designed to deploy on exactly three machines. Each machine will run mon
-and osd.
 
 This charm uses the new-style Ceph deployment as reverse-engineered from the
 Chef cookbook at https://github.com/ceph/ceph-cookbooks, although we selected

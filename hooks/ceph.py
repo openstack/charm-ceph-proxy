@@ -15,14 +15,18 @@ import apt_pkg as apt
 from charmhelpers.core.host import (
     mkdir,
     service_restart,
-    log
+)
+from charmhelpers.core.hookenv import (
+    log,
+    ERROR,
+    config,
 )
 from charmhelpers.contrib.storage.linux.utils import (
     zap_disk,
-    is_block_device
+    is_block_device,
 )
 from utils import (
-    get_unit_hostname
+    get_unit_hostname,
 )
 
 LEADER = 'leader'
@@ -117,6 +121,16 @@ def is_osd_disk(dev):
     except subprocess.CalledProcessError:
         pass
     return False
+
+
+def start_osds(devices):
+    if get_ceph_version() < "0.56.6":
+        # Only supports block devices - force a rescan
+        rescan_osd_devices()
+    else:
+        # Use ceph-disk-activate for later ceph versions
+        for dev_or_path in devices:
+            subprocess.check_call(['ceph-disk-activate', dev_or_path])
 
 
 def rescan_osd_devices():
@@ -291,6 +305,13 @@ def update_monfs():
 
 
 def osdize(dev, osd_format, osd_journal, reformat_osd=False):
+    if dev.startswith('/dev'):
+        osdize_dev(dev, osd_format, osd_journal, reformat_osd)
+    else:
+        osdize_dir(dev)
+
+
+def osdize_dev(dev, osd_format, osd_journal, reformat_osd=False):
     if not os.path.exists(dev):
         log('Path {} does not exist - bailing'.format(dev))
         return
@@ -324,6 +345,25 @@ def osdize(dev, osd_format, osd_journal, reformat_osd=False):
     if reformat_osd:
         zap_disk(dev)
 
+    subprocess.check_call(cmd)
+
+
+def osdize_dir(path):
+    if os.path.exists(os.path.join(path, 'upstart')):
+        log('Path {} is already configured as an OSD - bailing'.format(path))
+        return
+
+    if get_ceph_version() < "0.56.6":
+        log('Unable to use directories for OSDs with ceph < 0.56.6',
+            level=ERROR)
+        raise
+
+    mkdir(path)
+    cmd = [
+        'ceph-disk-prepare',
+        '--data-dir',
+        path
+    ]
     subprocess.check_call(cmd)
 
 

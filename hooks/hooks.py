@@ -102,7 +102,7 @@ def config_changed():
         with open(JOURNAL_ZAPPED, 'w') as zapped:
             zapped.write('DONE')
 
-    for dev in config('osd-devices').split(' '):
+    for dev in get_devices():
         ceph.osdize(dev, config('osd-format'), config('osd-journal'),
                     reformat_osd())
 
@@ -112,7 +112,7 @@ def config_changed():
         ceph.wait_for_bootstrap()
 
     if ceph.is_bootstrapped():
-        ceph.rescan_osd_devices()
+        ceph.start_osds(get_devices())
 
     log('End config-changed hook.')
 
@@ -139,6 +139,13 @@ def reformat_osd():
         return False
 
 
+def get_devices():
+    if config('osd-devices'):
+        return config('osd-devices').split(' ')
+    else:
+        return []
+
+
 @hooks.hook('mon-relation-departed',
             'mon-relation-joined')
 def mon_relation():
@@ -149,7 +156,7 @@ def mon_relation():
     if len(get_mon_hosts()) >= moncount:
         ceph.bootstrap_monitor_cluster(config('monitor-secret'))
         ceph.wait_for_bootstrap()
-        ceph.rescan_osd_devices()
+        ceph.start_osds(get_devices())
         notify_osds()
         notify_radosgws()
         notify_client()
@@ -258,7 +265,8 @@ def start():
     # In case we're being redeployed to the same machines, try
     # to make sure everything is running as soon as possible.
     service_restart('ceph-mon-all')
-    ceph.rescan_osd_devices()
+    if ceph.is_bootstrapped():
+        ceph.start_osds(get_devices())
 
 
 if __name__ == '__main__':
