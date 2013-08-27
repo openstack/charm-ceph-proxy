@@ -123,13 +123,13 @@ def is_osd_disk(dev):
 
 
 def start_osds(devices):
-    if get_ceph_version() < "0.56.6":
-        # Only supports block devices - force a rescan
-        rescan_osd_devices()
-    else:
-        # Use ceph-disk-activate for later ceph versions
+    # Scan for ceph block devices
+    rescan_osd_devices()
+    if get_ceph_version() >= "0.56.6":
+        # Use ceph-disk-activate for directory based OSD's
         for dev_or_path in devices:
-            if os.path.exists(dev_or_path):
+            if (os.path.exists(dev_or_path) and
+                os.path.isdir(dev_or_path)):
                 subprocess.check_call(['ceph-disk-activate', dev_or_path])
 
 
