@@ -102,16 +102,15 @@ def config_changed():
         with open(JOURNAL_ZAPPED, 'w') as zapped:
             zapped.write('DONE')
 
-    for dev in get_devices():
-        ceph.osdize(dev, config('osd-format'), config('osd-journal'),
-                    reformat_osd())
-
     # Support use of single node ceph
     if (not ceph.is_bootstrapped() and int(config('monitor-count')) == 1):
         ceph.bootstrap_monitor_cluster(config('monitor-secret'))
         ceph.wait_for_bootstrap()
 
     if ceph.is_bootstrapped():
+        for dev in get_devices():
+            ceph.osdize(dev, config('osd-format'), config('osd-journal'),
+                        reformat_osd())
         ceph.start_osds(get_devices())
 
     log('End config-changed hook.')
@@ -156,6 +155,9 @@ def mon_relation():
     if len(get_mon_hosts()) >= moncount:
         ceph.bootstrap_monitor_cluster(config('monitor-secret'))
         ceph.wait_for_bootstrap()
+        for dev in get_devices():
+            ceph.osdize(dev, config('osd-format'), config('osd-journal'),
+                        reformat_osd())
         ceph.start_osds(get_devices())
         notify_osds()
         notify_radosgws()
