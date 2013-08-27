@@ -175,6 +175,12 @@ _osd_bootstrap_caps = {
     ]
 }
 
+_osd_bootstrap_caps_profile = {
+    'mon': [
+        'allow profile bootstrap-osd'
+    ]
+}
+
 
 def parse_key(raw_key):
     # get-or-create appears to have different output depending
@@ -192,16 +198,15 @@ def parse_key(raw_key):
 
 
 def get_osd_bootstrap_key():
-    cmd = [
-        'ceph',
-        '--name', 'mon.',
-        '--keyring',
-        '/var/lib/ceph/mon/ceph-{}/keyring'.format(
-            get_unit_hostname()
-        ),
-        'auth', 'get', 'client.bootstrap-osd',
-    ]
-    return parse_key(subprocess.check_output(cmd).strip())  # IGNORE:E1103
+    try:
+        # Attempt to get/create a key using the OSD bootstrap profile first
+        key = get_named_key('client.bootstrap-osd',
+                            _osd_bootstrap_caps_profile)
+    except:
+        # If that fails try with the older style permissions
+        key = get_named_key('client.bootstrap-osd',
+                            _osd_bootstrap_caps)
+    return key
 
 
 _radosgw_keyring = "/etc/ceph/keyring.rados.gateway"
