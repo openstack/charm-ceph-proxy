@@ -130,7 +130,8 @@ def start_osds(devices):
     else:
         # Use ceph-disk-activate for later ceph versions
         for dev_or_path in devices:
-            subprocess.check_call(['ceph-disk-activate', dev_or_path])
+            if os.path.exists(dev_or_path):
+                subprocess.check_call(['ceph-disk-activate', dev_or_path])
 
 
 def rescan_osd_devices():
