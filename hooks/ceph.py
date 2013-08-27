@@ -19,7 +19,6 @@ from charmhelpers.core.host import (
 from charmhelpers.core.hookenv import (
     log,
     ERROR,
-    config,
 )
 from charmhelpers.contrib.storage.linux.utils import (
     zap_disk,
@@ -177,8 +176,32 @@ _osd_bootstrap_caps = {
 }
 
 
+def parse_key(raw_key):
+    # get-or-create appears to have different output depending
+    # on whether its 'get' or 'create'
+    # 'create' just returns the key, 'get' is more verbose and
+    # needs parsing
+    key = None
+    if len(raw_key.splitlines()) == 1:
+        key = raw_key
+    else:
+        for element in raw_key.splitlines():
+            if 'key' in element:
+                key = element.split(' = ')[1].strip()  # IGNORE:E1103
+    return key
+
+
 def get_osd_bootstrap_key():
-    return get_named_key('bootstrap-osd', _osd_bootstrap_caps)
+    cmd = [
+        'ceph',
+        '--name', 'mon.',
+        '--keyring',
+        '/var/lib/ceph/mon/ceph-{}/keyring'.format(
+            get_unit_hostname()
+        ),
+        'auth', 'get', 'client.bootstrap-osd',
+    ]
+    return parse_key(subprocess.check_output(cmd).strip())  # IGNORE:E1103
 
 
 _radosgw_keyring = "/etc/ceph/keyring.rados.gateway"
@@ -229,19 +252,7 @@ def get_named_key(name, caps=None):
             subsystem,
             '; '.join(subcaps),
         ])
-    output = subprocess.check_output(cmd).strip()  # IGNORE:E1103
-    # get-or-create appears to have different output depending
-    # on whether its 'get' or 'create'
-    # 'create' just returns the key, 'get' is more verbose and
-    # needs parsing
-    key = None
-    if len(output.splitlines()) == 1:
-        key = output
-    else:
-        for element in output.splitlines():
-            if 'key' in element:
-                key = element.split(' = ')[1].strip()  # IGNORE:E1103
-    return key
+    return parse_key(subprocess.check_output(cmd).strip())  # IGNORE:E1103
 
 
 def bootstrap_monitor_cluster(secret):
