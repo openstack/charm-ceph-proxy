@@ -128,8 +128,7 @@ def start_osds(devices):
     if get_ceph_version() >= "0.56.6":
         # Use ceph-disk-activate for directory based OSD's
         for dev_or_path in devices:
-            if (os.path.exists(dev_or_path) and
-                os.path.isdir(dev_or_path)):
+            if os.path.exists(dev_or_path) and os.path.isdir(dev_or_path):
                 subprocess.check_call(['ceph-disk-activate', dev_or_path])
 
 
@@ -200,11 +199,11 @@ def parse_key(raw_key):
 def get_osd_bootstrap_key():
     try:
         # Attempt to get/create a key using the OSD bootstrap profile first
-        key = get_named_key('client.bootstrap-osd',
+        key = get_named_key('bootstrap-osd',
                             _osd_bootstrap_caps_profile)
     except:
         # If that fails try with the older style permissions
-        key = get_named_key('client.bootstrap-osd',
+        key = get_named_key('bootstrap-osd',
                             _osd_bootstrap_caps)
     return key
 
