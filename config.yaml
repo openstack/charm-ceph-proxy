@@ -39,6 +39,9 @@ options:
       .
       These devices are the range of devices that will be checked for and
       used across all service units.
+      .
+      For ceph >= 0.56.6 these can also be directories instead of devices - the
+      charm assumes anything not starting with /dev is a directory instead.
   osd-journal:
     type: string
     description: |

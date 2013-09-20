@@ -15,14 +15,17 @@ import apt_pkg as apt
 from charmhelpers.core.host import (
     mkdir,
     service_restart,
-    log
+)
+from charmhelpers.core.hookenv import (
+    log,
+    ERROR,
 )
 from charmhelpers.contrib.storage.linux.utils import (
     zap_disk,
-    is_block_device
+    is_block_device,
 )
 from utils import (
-    get_unit_hostname
+    get_unit_hostname,
 )
 
 LEADER = 'leader'
@@ -119,6 +122,16 @@ def is_osd_disk(dev):
     return False
 
 
+def start_osds(devices):
+    # Scan for ceph block devices
+    rescan_osd_devices()
+    if get_ceph_version() >= "0.56.6":
+        # Use ceph-disk-activate for directory based OSD's
+        for dev_or_path in devices:
+            if os.path.exists(dev_or_path) and os.path.isdir(dev_or_path):
+                subprocess.check_call(['ceph-disk-activate', dev_or_path])
+
+
 def rescan_osd_devices():
     cmd = [
         'udevadm', 'trigger',
@@ -161,9 +174,38 @@ _osd_bootstrap_caps = {
     ]
 }
 
+_osd_bootstrap_caps_profile = {
+    'mon': [
+        'allow profile bootstrap-osd'
+    ]
+}
+
+
+def parse_key(raw_key):
+    # get-or-create appears to have different output depending
+    # on whether its 'get' or 'create'
+    # 'create' just returns the key, 'get' is more verbose and
+    # needs parsing
+    key = None
+    if len(raw_key.splitlines()) == 1:
+        key = raw_key
+    else:
+        for element in raw_key.splitlines():
+            if 'key' in element:
+                key = element.split(' = ')[1].strip()  # IGNORE:E1103
+    return key
+
 
 def get_osd_bootstrap_key():
-    return get_named_key('bootstrap-osd', _osd_bootstrap_caps)
+    try:
+        # Attempt to get/create a key using the OSD bootstrap profile first
+        key = get_named_key('bootstrap-osd',
+                            _osd_bootstrap_caps_profile)
+    except:
+        # If that fails try with the older style permissions
+        key = get_named_key('bootstrap-osd',
+                            _osd_bootstrap_caps)
+    return key
 
 
 _radosgw_keyring = "/etc/ceph/keyring.rados.gateway"
@@ -214,19 +256,7 @@ def get_named_key(name, caps=None):
             subsystem,
             '; '.join(subcaps),
         ])
-    output = subprocess.check_output(cmd).strip()  # IGNORE:E1103
-    # get-or-create appears to have different output depending
-    # on whether its 'get' or 'create'
-    # 'create' just returns the key, 'get' is more verbose and
-    # needs parsing
-    key = None
-    if len(output.splitlines()) == 1:
-        key = output
-    else:
-        for element in output.splitlines():
-            if 'key' in element:
-                key = element.split(' = ')[1].strip()  # IGNORE:E1103
-    return key
+    return parse_key(subprocess.check_output(cmd).strip())  # IGNORE:E1103
 
 
 def bootstrap_monitor_cluster(secret):
@@ -291,6 +321,13 @@ def update_monfs():
 
 
 def osdize(dev, osd_format, osd_journal, reformat_osd=False):
+    if dev.startswith('/dev'):
+        osdize_dev(dev, osd_format, osd_journal, reformat_osd)
+    else:
+        osdize_dir(dev)
+
+
+def osdize_dev(dev, osd_format, osd_journal, reformat_osd=False):
     if not os.path.exists(dev):
         log('Path {} does not exist - bailing'.format(dev))
         return
@@ -324,6 +361,25 @@ def osdize(dev, osd_format, osd_journal, reformat_osd=False):
     if reformat_osd:
         zap_disk(dev)
 
+    subprocess.check_call(cmd)
+
+
+def osdize_dir(path):
+    if os.path.exists(os.path.join(path, 'upstart')):
+        log('Path {} is already configured as an OSD - bailing'.format(path))
+        return
+
+    if get_ceph_version() < "0.56.6":
+        log('Unable to use directories for OSDs with ceph < 0.56.6',
+            level=ERROR)
+        raise
+
+    mkdir(path)
+    cmd = [
+        'ceph-disk-prepare',
+        '--data-dir',
+        path
+    ]
     subprocess.check_call(cmd)
 
 
