@@ -268,7 +268,7 @@ def upgrade_key_caps(key, caps):
         'ceph', 'auth', 'caps', key
     ]
     for subsystem, subcaps in caps.iteritems():
-        cmd.extend([subsystem, "'{}'".format(subcaps)])
+        cmd.extend([subsystem, '; '.join(subcaps)])
     subprocess.check_call(cmd)
 
 
