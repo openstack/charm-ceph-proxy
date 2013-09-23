@@ -209,13 +209,13 @@ def notify_client():
 def upgrade_keys():
     ''' Ceph now required mon allow rw for pool creation '''
     if len(relation_ids('radosgw')) > 0:
-        ceph.upgrade_key_caps('radosgw.gateway',
+        ceph.upgrade_key_caps('client.radosgw.gateway',
                               ceph._radosgw_caps)
     for relid in relation_ids('client'):
         units = related_units(relid)
         if len(units) > 0:
             service_name = units[0].split('/')[0]
-            ceph.upgrade_key_caps(service_name,
+            ceph.upgrade_key_caps('client.{}'.format(service_name),
                                   ceph._default_caps)
 
 
