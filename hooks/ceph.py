@@ -224,7 +224,7 @@ def import_radosgw_key(key):
 
 # OSD caps taken from ceph-create-keys
 _radosgw_caps = {
-    'mon': ['allow r'],
+    'mon': ['allow rw'],
     'osd': ['allow rwx']
 }
 
@@ -234,7 +234,7 @@ def get_radosgw_key():
 
 
 _default_caps = {
-    'mon': ['allow r'],
+    'mon': ['allow rw'],
     'osd': ['allow rwx']
 }
 
@@ -257,6 +257,19 @@ def get_named_key(name, caps=None):
             '; '.join(subcaps),
         ])
     return parse_key(subprocess.check_output(cmd).strip())  # IGNORE:E1103
+
+
+def upgrade_key_caps(key, caps):
+    ''' Upgrade key to have capabilities caps '''
+    if not is_leader():
+        # Not the MON leader OR not clustered
+        return
+    cmd = [
+        'ceph', 'auth', 'caps', key
+    ]
+    for subsystem, subcaps in caps.iteritems():
+        cmd.extend([subsystem, "'{}'".format(subcaps)])
+    subprocess.check_call(cmd)
 
 
 def bootstrap_monitor_cluster(secret):
