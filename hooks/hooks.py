@@ -206,6 +206,19 @@ def notify_client():
     log('End notify_client.')
 
 
+def upgrade_keys():
+    ''' Ceph now required mon allow rw for pool creation '''
+    if len(relation_ids('radosgw')) > 0:
+        ceph.upgrade_key_caps('client.radosgw.gateway',
+                              ceph._radosgw_caps)
+    for relid in relation_ids('client'):
+        units = related_units(relid)
+        if len(units) > 0:
+            service_name = units[0].split('/')[0]
+            ceph.upgrade_key_caps('client.{}'.format(service_name),
+                                  ceph._default_caps)
+
+
 @hooks.hook('osd-relation-joined')
 def osd_relation():
     log('Begin osd-relation hook.')
@@ -259,6 +272,7 @@ def upgrade_charm():
     apt_install(packages=filter_installed_packages(ceph.PACKAGES), fatal=True)
     install_upstart_scripts()
     ceph.update_monfs()
+    upgrade_keys()
     log('End upgrade-charm hook.')
 
 
