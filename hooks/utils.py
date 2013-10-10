@@ -13,7 +13,7 @@ from charmhelpers.core.hookenv import (
     unit_get,
     cached
 )
-from charmhelpers.core.host import (
+from charmhelpers.fetch import (
     apt_install,
     filter_installed_packages
 )

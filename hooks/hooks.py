@@ -22,16 +22,22 @@ from charmhelpers.core.hookenv import (
     relation_get,
     relation_set,
     remote_unit,
-    Hooks, UnregisteredHookError
+    Hooks, UnregisteredHookError,
+    service_name
 )
+
 from charmhelpers.core.host import (
+    service_restart,
+    umount,
+    mkdir
+)
+from charmhelpers.fetch import (
     apt_install,
     apt_update,
     filter_installed_packages,
-    service_restart,
-    umount
+    add_source
 )
-from charmhelpers.fetch import add_source
+from charmhelpers.contrib.openstack.alternatives import install_alternative
 
 from utils import (
     render_template,
@@ -65,9 +71,14 @@ def emit_cephconf():
         'fsid': config('fsid'),
         'version': ceph.get_ceph_version()
     }
-
-    with open('/etc/ceph/ceph.conf', 'w') as cephconf:
+    # Install ceph.conf as an alternative to support
+    # co-existence with other charms that write this file
+    charm_ceph_conf = "/var/lib/charm/{}/ceph.conf".format(service_name())
+    mkdir(os.path.dirname(charm_ceph_conf))
+    with open(charm_ceph_conf, 'w') as cephconf:
         cephconf.write(render_template('ceph.conf', cephcontext))
+    install_alternative('ceph.conf', '/etc/ceph/ceph.conf',
+                        charm_ceph_conf, 100)
 
 JOURNAL_ZAPPED = '/var/lib/ceph/journal_zapped'
 
