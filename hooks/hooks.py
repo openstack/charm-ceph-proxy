@@ -32,6 +32,7 @@ from charmhelpers.core.host import (
     umount
 )
 from charmhelpers.fetch import add_source
+from charmhelpers.payload.execd import execd_preinstall
 
 from utils import (
     render_template,
@@ -51,6 +52,7 @@ def install_upstart_scripts():
 @hooks.hook('install')
 def install():
     log('Begin install hook.')
+    execd_preinstall()
     add_source(config('source'), config('key'))
     apt_update(fatal=True)
     apt_install(packages=ceph.PACKAGES, fatal=True)
