@@ -6,3 +6,4 @@ include:
     - contrib.storage.linux:
         - utils
     - payload.execd
+    - contrib.openstack.alternatives
