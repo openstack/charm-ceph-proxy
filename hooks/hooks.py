@@ -71,7 +71,8 @@ def emit_cephconf():
         'auth_supported': config('auth-supported'),
         'mon_hosts': ' '.join(get_mon_hosts()),
         'fsid': config('fsid'),
-        'version': ceph.get_ceph_version()
+        'version': ceph.get_ceph_version(),
+        'osd_journal_size': config('osd-journal-size')
     }
     # Install ceph.conf as an alternative to support
     # co-existence with other charms that write this file

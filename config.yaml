@@ -49,6 +49,17 @@ options:
       no journal device will be used.
       .
       Only supported with ceph >= 0.48.3.
+  osd-journal-size:
+    type: int
+    default: 1024
+    description: |
+      Ceph osd journal size. The journal size should be at least twice the
+      product of the expected drive speed multiplied by filestore max sync
+      interval. However, the most common practice is to partition the journal
+      drive (often an SSD), and mount it such that Ceph uses the entire
+      partition for the journal.
+      .
+      Only supported with ceph >= 0.48.3.
   osd-format:
     type: string
     default: xfs
