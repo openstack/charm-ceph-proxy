@@ -1,16 +1,15 @@
-Overview
-========
+# Overview
 
 Ceph is a distributed storage and network file system designed to provide
 excellent performance, reliability, and scalability.
 
 This charm deploys a Ceph cluster.
+juju
 
-Usage
-=====
+# Usage
 
 The ceph charm has two pieces of mandatory configuration for which no defaults
-are provided:
+are provided. You _must_ set these configuration options before deployment or the charm will not work: 
 
     fsid:
         uuid specific to a ceph cluster used to ensure that different
@@ -60,16 +59,29 @@ By default the ceph cluster will not bootstrap until 3 service units have been
 deployed and started; this is to ensure that a quorum is achieved prior to adding
 storage devices.
 
-Contact Information
-===================
+## Scale Out Usage
 
-Author: Paul Collins <paul.collins@canonical.com>,
- James Page <james.page@ubuntu.com>
-Report bugs at: http://bugs.launchpad.net/charms/+source/ceph/+filebug
-Location: http://jujucharms.com/charms/ceph
+You can use the Ceph OSD and Ceph Radosgw charms:
 
-Technical Bootnotes
-===================
+- [Ceph OSD](https://jujucharms.com/precise/ceph-osd)
+- [Ceph Rados Gateway](https://jujucharms.com/precise/ceph-radosgw)
+
+# Contact Information
+
+## Authors 
+
+- Paul Collins <paul.collins@canonical.com>,
+- James Page <james.page@ubuntu.com>
+
+Report bugs on [Launchpad](http://bugs.launchpad.net/charms/+source/ceph/+filebug)
+
+## Ceph
+
+- [Ceph website](http://ceph.com)
+- [Ceph mailing lists](http://ceph.com/resources/mailing-list-irc/)
+- [Ceph bug tracker](http://tracker.ceph.com/projects/ceph)
+
+# Technical Footnotes
 
 This charm uses the new-style Ceph deployment as reverse-engineered from the
 Chef cookbook at https://github.com/ceph/ceph-cookbooks, although we selected
@@ -82,12 +94,11 @@ cluster a quorum forms quickly, and OSD bringup proceeds.
 The osds use so-called "OSD hotplugging". **ceph-disk-prepare** is used to
 create the filesystems with a special GPT partition type. *udev* is set up
 to mount such filesystems and start the osd daemons as their storage becomes
-visible to the system (or after "udevadm trigger").
+visible to the system (or after `udevadm trigger`).
 
 The Chef cookbook mentioned above performs some extra steps to generate an OSD
 bootstrapping key and propagate it to the other nodes in the cluster. Since
 all OSDs run on nodes that also run mon, we don't need this and did not
 implement it.
 
-See http://ceph.com/docs/master/dev/mon-bootstrap/ for more information on Ceph
-monitor cluster deployment strategies and pitfalls.
+See [the documentation](http://ceph.com/docs/master/dev/mon-bootstrap/) for more information on Ceph monitor cluster deployment strategies and pitfalls.
