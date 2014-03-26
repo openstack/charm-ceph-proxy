@@ -44,8 +44,16 @@ CLOUD_ARCHIVE_POCKETS = {
     'precise-havana/updates': 'precise-updates/havana',
     'precise-updates/havana': 'precise-updates/havana',
     'havana/proposed': 'precise-proposed/havana',
-    'precies-havana/proposed': 'precise-proposed/havana',
+    'precise-havana/proposed': 'precise-proposed/havana',
     'precise-proposed/havana': 'precise-proposed/havana',
+    # Icehouse
+    'icehouse': 'precise-updates/icehouse',
+    'precise-icehouse': 'precise-updates/icehouse',
+    'precise-icehouse/updates': 'precise-updates/icehouse',
+    'precise-updates/icehouse': 'precise-updates/icehouse',
+    'icehouse/proposed': 'precise-proposed/icehouse',
+    'precise-icehouse/proposed': 'precise-proposed/icehouse',
+    'precise-proposed/icehouse': 'precise-proposed/icehouse',
 }
 
 
@@ -79,6 +87,29 @@ def apt_install(packages, options=None, fatal=False):
         cmd.extend(packages)
     log("Installing {} with options: {}".format(packages,
                                                 options))
+    env = os.environ.copy()
+    if 'DEBIAN_FRONTEND' not in env:
+        env['DEBIAN_FRONTEND'] = 'noninteractive'
+
+    if fatal:
+        subprocess.check_call(cmd, env=env)
+    else:
+        subprocess.call(cmd, env=env)
+
+
+def apt_upgrade(options=None, fatal=False, dist=False):
+    """Upgrade all packages"""
+    if options is None:
+        options = ['--option=Dpkg::Options::=--force-confold']
+
+    cmd = ['apt-get', '--assume-yes']
+    cmd.extend(options)
+    if dist:
+        cmd.append('dist-upgrade')
+    else:
+        cmd.append('upgrade')
+    log("Upgrading with options: {}".format(options))
+
     env = os.environ.copy()
     if 'DEBIAN_FRONTEND' not in env:
         env['DEBIAN_FRONTEND'] = 'noninteractive'
@@ -127,8 +158,12 @@ def apt_hold(packages, fatal=False):
 
 
 def add_source(source, key=None):
+    if source is None:
+        log('Source is not present. Skipping')
+        return
+
     if (source.startswith('ppa:') or
-        source.startswith('http:') or
+        source.startswith('http') or
         source.startswith('deb ') or
             source.startswith('cloud-archive:')):
         subprocess.check_call(['add-apt-repository', '--yes', source])
@@ -148,7 +183,9 @@ def add_source(source, key=None):
         with open('/etc/apt/sources.list.d/proposed.list', 'w') as apt:
             apt.write(PROPOSED_POCKET.format(release))
     if key:
-        subprocess.check_call(['apt-key', 'import', key])
+        subprocess.check_call(['apt-key', 'adv', '--keyserver',
+                               'keyserver.ubuntu.com', '--recv',
+                               key])
 
 
 class SourceConfigError(Exception):
