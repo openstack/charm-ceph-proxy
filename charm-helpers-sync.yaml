@@ -7,3 +7,4 @@ include:
         - utils
     - payload.execd
     - contrib.openstack.alternatives
+    - contrib.network.ip

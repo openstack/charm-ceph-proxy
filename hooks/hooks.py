@@ -43,6 +43,7 @@ from charmhelpers.contrib.openstack.alternatives import install_alternative
 from utils import (
     render_template,
     get_host_ip,
+    get_public_addr,
 )
 
 hooks = Hooks()
@@ -73,7 +74,9 @@ def emit_cephconf():
         'fsid': config('fsid'),
         'version': ceph.get_ceph_version(),
         'osd_journal_size': config('osd-journal-size'),
-        'use_syslog': str(config('use-syslog')).lower()
+        'use_syslog': str(config('use-syslog')).lower(),
+        'ceph_public_network': config('ceph-public-network'),
+        'ceph_cluster_network': config('ceph-cluster-network'),
     }
     # Install ceph.conf as an alternative to support
     # co-existence with other charms that write this file
@@ -133,14 +136,13 @@ def config_changed():
 
 def get_mon_hosts():
     hosts = []
-    hosts.append('{}:6789'.format(get_host_ip()))
+    hosts.append('{}:6789'.format(get_public_addr()))
 
     for relid in relation_ids('mon'):
         for unit in related_units(relid):
-            hosts.append(
-                '{}:6789'.format(get_host_ip(relation_get('private-address',
-                                             unit, relid)))
-            )
+            addr = relation_get('ceph_public_addr', unit, relid) or \
+                get_host_ip(relation_get('private-address', unit, relid))
+            hosts.append('{}:6789'.format(addr))
 
     hosts.sort()
     return hosts
@@ -160,8 +162,15 @@ def get_devices():
         return []
 
 
+@hooks.hook('mon-relation-joined')
+def mon_relation_joined():
+    for relid in relation_ids('mon'):
+        relation_set(relation_id=relid,
+                     ceph_public_addr=get_public_addr())
+
+
 @hooks.hook('mon-relation-departed',
-            'mon-relation-joined')
+            'mon-relation-changed')
 def mon_relation():
     log('Begin mon-relation hook.')
     emit_cephconf()
@@ -191,7 +200,8 @@ def notify_osds():
         relation_set(relation_id=relid,
                      fsid=config('fsid'),
                      osd_bootstrap_key=ceph.get_osd_bootstrap_key(),
-                     auth=config('auth-supported'))
+                     auth=config('auth-supported'),
+                     ceph_public_addr=get_public_addr())
 
     log('End notify_osds.')
 
@@ -202,7 +212,8 @@ def notify_radosgws():
     for relid in relation_ids('radosgw'):
         relation_set(relation_id=relid,
                      radosgw_key=ceph.get_radosgw_key(),
-                     auth=config('auth-supported'))
+                     auth=config('auth-supported'),
+                     ceph_public_addr=get_public_addr())
 
     log('End notify_radosgws.')
 
@@ -216,7 +227,8 @@ def notify_client():
             service_name = units[0].split('/')[0]
             relation_set(relation_id=relid,
                          key=ceph.get_named_key(service_name),
-                         auth=config('auth-supported'))
+                         auth=config('auth-supported'),
+                         ceph_public_addr=get_public_addr())
 
     log('End notify_client.')
 
@@ -242,7 +254,8 @@ def osd_relation():
         log('mon cluster in quorum - providing fsid & keys')
         relation_set(fsid=config('fsid'),
                      osd_bootstrap_key=ceph.get_osd_bootstrap_key(),
-                     auth=config('auth-supported'))
+                     auth=config('auth-supported'),
+                     ceph_public_addr=get_public_addr())
     else:
         log('mon cluster not in quorum - deferring fsid provision')
 
@@ -258,7 +271,8 @@ def radosgw_relation():
     if ceph.is_quorum():
         log('mon cluster in quorum - providing radosgw with keys')
         relation_set(radosgw_key=ceph.get_radosgw_key(),
-                     auth=config('auth-supported'))
+                     auth=config('auth-supported'),
+                     ceph_public_addr=get_public_addr())
     else:
         log('mon cluster not in quorum - deferring key provision')
 
@@ -273,7 +287,8 @@ def client_relation():
         log('mon cluster in quorum - providing client with keys')
         service_name = remote_unit().split('/')[0]
         relation_set(key=ceph.get_named_key(service_name),
-                     auth=config('auth-supported'))
+                     auth=config('auth-supported'),
+                     ceph_public_addr=get_public_addr())
     else:
         log('mon cluster not in quorum - deferring key provision')
 

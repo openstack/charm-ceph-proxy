@@ -284,7 +284,7 @@ def bootstrap_monitor_cluster(secret):
         log('bootstrap_monitor_cluster: mon already initialized.')
     else:
         # Ceph >= 0.61.3 needs this for ceph-mon fs creation
-        mkdir('/var/run/ceph', perms=0755)
+        mkdir('/var/run/ceph', perms=0o755)
         mkdir(path)
         # end changes for Ceph >= 0.61.3
         try:

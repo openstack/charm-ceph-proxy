@@ -115,3 +115,13 @@ options:
     default: False
     description: |
       If set to True, supporting services will log to syslog.
+  ceph-public-network:
+     type: string
+     description: |
+        The IP address and netmask of the public (front-side) network (e.g.,
+        192.168.0.0/24)
+  ceph-cluster-network:
+     type: string
+     description: |
+        The IP address and netmask of the cluster (back-side) network (e.g.,
+        192.168.0.0/24)
