@@ -79,5 +79,5 @@ def get_host_ip(hostname=None):
 
 @cached
 def get_public_addr():
-    return ip.get_address_in_network(
-        config('ceph-public-network'), fallback=get_host_ip())
+    return ip.get_address_in_network(config('ceph-public-network'),
+                                     fallback=get_host_ip())
