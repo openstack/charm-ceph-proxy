@@ -160,7 +160,9 @@ def get_devices():
 def mon_relation_joined():
     for relid in relation_ids('mon'):
         relation_set(relation_id=relid,
-                     ceph_public_addr=get_public_addr())
+                     relation_settings={
+                        'ceph-public-address': get_public_addr()
+                     })
 
 
 @hooks.hook('mon-relation-departed',
@@ -276,6 +278,7 @@ def upgrade_charm():
     install_upstart_scripts()
     ceph.update_monfs()
     upgrade_keys()
+    mon_relation_joined()
 
 
 @hooks.hook('start')
