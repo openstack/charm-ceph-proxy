@@ -42,7 +42,6 @@ from charmhelpers.contrib.openstack.alternatives import install_alternative
 
 from utils import (
     render_template,
-    get_host_ip,
     get_public_addr,
 )
 
@@ -160,9 +159,8 @@ def get_devices():
 def mon_relation_joined():
     for relid in relation_ids('mon'):
         relation_set(relation_id=relid,
-                     relation_settings={
-                        'ceph-public-address': get_public_addr()
-                     })
+                     relation_settings={'ceph-public-address':
+                                        get_public_addr()})
 
 
 @hooks.hook('mon-relation-departed',
