@@ -134,9 +134,9 @@ def get_mon_hosts():
 
     for relid in relation_ids('mon'):
         for unit in related_units(relid):
-            addr = relation_get('ceph-public-address', unit, relid) or \
-                get_host_ip(relation_get('private-address', unit, relid))
-            hosts.append('{}:6789'.format(addr))
+            addr = relation_get('ceph-public-address', unit, relid)
+            if addr is not None:
+                hosts.append('{}:6789'.format(addr))
 
     hosts.sort()
     return hosts
