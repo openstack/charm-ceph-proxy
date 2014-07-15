@@ -364,6 +364,8 @@ def osdize_dev(dev, osd_format, osd_journal, reformat_osd=False):
         if osd_format:
             cmd.append('--fs-type')
             cmd.append(osd_format)
+        if reformat_osd:
+            cmd.append('--zap-disk')
         cmd.append(dev)
         if osd_journal and os.path.exists(osd_journal):
             cmd.append(osd_journal)
