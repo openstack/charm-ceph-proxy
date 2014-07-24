@@ -39,6 +39,7 @@ from charmhelpers.fetch import (
 )
 from charmhelpers.payload.execd import execd_preinstall
 from charmhelpers.contrib.openstack.alternatives import install_alternative
+from charmhelpers.contrib.network.ip import is_ipv6
 
 from utils import (
     render_template,
@@ -134,6 +135,8 @@ def get_mon_hosts():
     for relid in relation_ids('mon'):
         for unit in related_units(relid):
             addr = relation_get('ceph-public-address', unit, relid)
+            if is_ipv6(addr):
+                addr = '[{}]'.format(addr)
             if addr is not None:
                 hosts.append('{}:6789'.format(addr))
 
