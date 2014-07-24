@@ -130,15 +130,20 @@ def config_changed():
 
 def get_mon_hosts():
     hosts = []
-    hosts.append('{}:6789'.format(get_public_addr()))
+    addr = get_public_addr()
+    if is_ipv6(addr):
+        hosts.append('[{}]:6789'.format(addr))
+    else:
+        hosts.append('{}:6789'.format(addr))
 
     for relid in relation_ids('mon'):
         for unit in related_units(relid):
             addr = relation_get('ceph-public-address', unit, relid)
-            if is_ipv6(addr):
-                addr = '[{}]'.format(addr)
             if addr is not None:
-                hosts.append('{}:6789'.format(addr))
+                if is_ipv6(addr):
+                    hosts.append('[{}]:6789'.format(addr))
+                else:
+                    hosts.append('{}:6789'.format(addr))
 
     hosts.sort()
     return hosts
