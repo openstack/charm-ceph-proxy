@@ -11,10 +11,10 @@ import json
 import subprocess
 import time
 import os
-import apt_pkg as apt
 from charmhelpers.core.host import (
     mkdir,
     service_restart,
+    cmp_pkgrevno,
 )
 from charmhelpers.core.hookenv import (
     log,
@@ -126,7 +126,7 @@ def is_osd_disk(dev):
 def start_osds(devices):
     # Scan for ceph block devices
     rescan_osd_devices()
-    if get_ceph_version() >= "0.56.6":
+    if cmp_pkgrevno('ceph', "0.56.6") >= 0:
         # Use ceph-disk-activate for directory based OSD's
         for dev_or_path in devices:
             if os.path.exists(dev_or_path) and os.path.isdir(dev_or_path):
@@ -309,20 +309,6 @@ def bootstrap_monitor_cluster(secret):
             os.unlink(keyring)
 
 
-def get_ceph_version():
-    apt.init()
-    cache = apt.Cache()
-    pkg = cache['ceph']
-    if pkg.current_ver:
-        return apt.upstream_version(pkg.current_ver.ver_str)
-    else:
-        return None
-
-
-def version_compare(a, b):
-    return apt.version_compare(a, b)
-
-
 def update_monfs():
     hostname = get_unit_hostname()
     monfs = '/var/lib/ceph/mon/ceph-{}'.format(hostname)
@@ -360,7 +346,7 @@ def osdize_dev(dev, osd_format, osd_journal, reformat_osd=False):
 
     cmd = ['ceph-disk-prepare']
     # Later versions of ceph support more options
-    if get_ceph_version() >= "0.48.3":
+    if cmp_pkgrevno('ceph', "0.48.3") >= 0:
         if osd_format:
             cmd.append('--fs-type')
             cmd.append(osd_format)
@@ -383,7 +369,7 @@ def osdize_dir(path):
         log('Path {} is already configured as an OSD - bailing'.format(path))
         return
 
-    if get_ceph_version() < "0.56.6":
+    if cmp_pkgrevno('ceph', "0.56.6") < 0:
         log('Unable to use directories for OSDs with ceph < 0.56.6',
             level=ERROR)
         raise
