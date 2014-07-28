@@ -359,9 +359,8 @@ def osdize_dev(dev, osd_format, osd_journal, reformat_osd=False):
         # Just provide the device - no other options
         # for older versions of ceph
         cmd.append(dev)
-
-    if reformat_osd:
-        zap_disk(dev)
+        if reformat_osd:
+            zap_disk(dev)
 
     subprocess.check_call(cmd)
 
