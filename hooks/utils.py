@@ -11,12 +11,15 @@ import socket
 import re
 from charmhelpers.core.hookenv import (
     unit_get,
-    cached
+    cached,
+    config
 )
 from charmhelpers.fetch import (
     apt_install,
     filter_installed_packages
 )
+
+from charmhelpers.contrib.network import ip
 
 TEMPLATES_DIR = 'templates'
 
@@ -72,3 +75,9 @@ def get_host_ip(hostname=None):
         answers = dns.resolver.query(hostname, 'A')
         if answers:
             return answers[0].address
+
+
+@cached
+def get_public_addr():
+    return ip.get_address_in_network(config('ceph-public-network'),
+                                     fallback=get_host_ip())

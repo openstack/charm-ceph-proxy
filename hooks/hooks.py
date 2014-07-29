@@ -40,10 +40,11 @@ from charmhelpers.fetch import (
 )
 from charmhelpers.payload.execd import execd_preinstall
 from charmhelpers.contrib.openstack.alternatives import install_alternative
+from charmhelpers.contrib.network.ip import is_ipv6
 
 from utils import (
     render_template,
-    get_host_ip,
+    get_public_addr,
 )
 
 hooks = Hooks()
@@ -58,13 +59,11 @@ def install_upstart_scripts():
 
 @hooks.hook('install')
 def install():
-    log('Begin install hook.')
     execd_preinstall()
     add_source(config('source'), config('key'))
     apt_update(fatal=True)
     apt_install(packages=ceph.PACKAGES, fatal=True)
     install_upstart_scripts()
-    log('End install hook.')
 
 
 def emit_cephconf():
@@ -74,7 +73,9 @@ def emit_cephconf():
         'fsid': config('fsid'),
         'old_auth': cmp_pkgrevno('ceph', "0.51") < 0,
         'osd_journal_size': config('osd-journal-size'),
-        'use_syslog': str(config('use-syslog')).lower()
+        'use_syslog': str(config('use-syslog')).lower(),
+        'ceph_public_network': config('ceph-public-network'),
+        'ceph_cluster_network': config('ceph-cluster-network'),
     }
     # Install ceph.conf as an alternative to support
     # co-existence with other charms that write this file
@@ -90,8 +91,6 @@ JOURNAL_ZAPPED = '/var/lib/ceph/journal_zapped'
 
 @hooks.hook('config-changed')
 def config_changed():
-    log('Begin config-changed hook.')
-
     log('Monitor hosts are ' + repr(get_mon_hosts()))
 
     # Pre-flight checks
@@ -129,19 +128,23 @@ def config_changed():
                         reformat_osd())
         ceph.start_osds(get_devices())
 
-    log('End config-changed hook.')
-
 
 def get_mon_hosts():
     hosts = []
-    hosts.append('{}:6789'.format(get_host_ip()))
+    addr = get_public_addr()
+    if is_ipv6(addr):
+        hosts.append('[{}]:6789'.format(addr))
+    else:
+        hosts.append('{}:6789'.format(addr))
 
     for relid in relation_ids('mon'):
         for unit in related_units(relid):
-            hosts.append(
-                '{}:6789'.format(get_host_ip(relation_get('private-address',
-                                             unit, relid)))
-            )
+            addr = relation_get('ceph-public-address', unit, relid)
+            if addr is not None:
+                if is_ipv6(addr):
+                    hosts.append('[{}]:6789'.format(addr))
+                else:
+                    hosts.append('{}:6789'.format(addr))
 
     hosts.sort()
     return hosts
@@ -161,10 +164,17 @@ def get_devices():
         return []
 
 
+@hooks.hook('mon-relation-joined')
+def mon_relation_joined():
+    for relid in relation_ids('mon'):
+        relation_set(relation_id=relid,
+                     relation_settings={'ceph-public-address':
+                                        get_public_addr()})
+
+
 @hooks.hook('mon-relation-departed',
-            'mon-relation-joined')
+            'mon-relation-changed')
 def mon_relation():
-    log('Begin mon-relation hook.')
     emit_cephconf()
 
     moncount = int(config('monitor-count'))
@@ -182,44 +192,20 @@ def mon_relation():
         log('Not enough mons ({}), punting.'
             .format(len(get_mon_hosts())))
 
-    log('End mon-relation hook.')
-
 
 def notify_osds():
-    log('Begin notify_osds.')
-
     for relid in relation_ids('osd'):
-        relation_set(relation_id=relid,
-                     fsid=config('fsid'),
-                     osd_bootstrap_key=ceph.get_osd_bootstrap_key(),
-                     auth=config('auth-supported'))
-
-    log('End notify_osds.')
+        osd_relation(relid)
 
 
 def notify_radosgws():
-    log('Begin notify_radosgws.')
-
     for relid in relation_ids('radosgw'):
-        relation_set(relation_id=relid,
-                     radosgw_key=ceph.get_radosgw_key(),
-                     auth=config('auth-supported'))
-
-    log('End notify_radosgws.')
+        radosgw_relation(relid)
 
 
 def notify_client():
-    log('Begin notify_client.')
-
     for relid in relation_ids('client'):
-        units = related_units(relid)
-        if len(units) > 0:
-            service_name = units[0].split('/')[0]
-            relation_set(relation_id=relid,
-                         key=ceph.get_named_key(service_name),
-                         auth=config('auth-supported'))
-
-    log('End notify_client.')
+        client_relation(relid)
 
 
 def upgrade_keys():
@@ -236,60 +222,70 @@ def upgrade_keys():
 
 
 @hooks.hook('osd-relation-joined')
-def osd_relation():
-    log('Begin osd-relation hook.')
-
+def osd_relation(relid=None):
     if ceph.is_quorum():
         log('mon cluster in quorum - providing fsid & keys')
-        relation_set(fsid=config('fsid'),
-                     osd_bootstrap_key=ceph.get_osd_bootstrap_key(),
-                     auth=config('auth-supported'))
+        data = {
+            'fsid': config('fsid'),
+            'osd_bootstrap_key': ceph.get_osd_bootstrap_key(),
+            'auth': config('auth-supported'),
+            'ceph-public-address': get_public_addr(),
+        }
+        relation_set(relation_id=relid,
+                     relation_settings=data)
     else:
         log('mon cluster not in quorum - deferring fsid provision')
 
-    log('End osd-relation hook.')
-
 
 @hooks.hook('radosgw-relation-joined')
-def radosgw_relation():
-    log('Begin radosgw-relation hook.')
-
+def radosgw_relation(relid=None):
     # Install radosgw for admin tools
     apt_install(packages=filter_installed_packages(['radosgw']))
     if ceph.is_quorum():
         log('mon cluster in quorum - providing radosgw with keys')
-        relation_set(radosgw_key=ceph.get_radosgw_key(),
-                     auth=config('auth-supported'))
+        data = {
+            'fsid': config('fsid'),
+            'radosgw_key': ceph.get_radosgw_key(),
+            'auth': config('auth-supported'),
+            'ceph-public-address': get_public_addr(),
+        }
+        relation_set(relation_id=relid,
+                     relation_settings=data)
     else:
         log('mon cluster not in quorum - deferring key provision')
-
-    log('End radosgw-relation hook.')
 
 
 @hooks.hook('client-relation-joined')
-def client_relation():
-    log('Begin client-relation hook.')
-
+def client_relation(relid=None):
     if ceph.is_quorum():
         log('mon cluster in quorum - providing client with keys')
-        service_name = remote_unit().split('/')[0]
-        relation_set(key=ceph.get_named_key(service_name),
-                     auth=config('auth-supported'))
+        service_name = None
+        if relid is None:
+            service_name = remote_unit().split('/')[0]
+        else:
+            units = related_units(relid)
+            if len(units) > 0:
+                service_name = units[0].split('/')[0]
+        if service_name is not None:
+            data = {
+                'key': ceph.get_named_key(service_name),
+                'auth': config('auth-supported'),
+                'ceph-public-address': get_public_addr(),
+            }
+            relation_set(relation_id=relid,
+                         relation_settings=data)
     else:
         log('mon cluster not in quorum - deferring key provision')
-
-    log('End client-relation hook.')
 
 
 @hooks.hook('upgrade-charm')
 def upgrade_charm():
-    log('Begin upgrade-charm hook.')
     emit_cephconf()
     apt_install(packages=filter_installed_packages(ceph.PACKAGES), fatal=True)
     install_upstart_scripts()
     ceph.update_monfs()
     upgrade_keys()
-    log('End upgrade-charm hook.')
+    mon_relation_joined()
 
 
 @hooks.hook('start')

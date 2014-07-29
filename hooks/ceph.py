@@ -284,7 +284,7 @@ def bootstrap_monitor_cluster(secret):
         log('bootstrap_monitor_cluster: mon already initialized.')
     else:
         # Ceph >= 0.61.3 needs this for ceph-mon fs creation
-        mkdir('/var/run/ceph', perms=0755)
+        mkdir('/var/run/ceph', perms=0o755)
         mkdir(path)
         # end changes for Ceph >= 0.61.3
         try:
@@ -350,6 +350,8 @@ def osdize_dev(dev, osd_format, osd_journal, reformat_osd=False):
         if osd_format:
             cmd.append('--fs-type')
             cmd.append(osd_format)
+        if reformat_osd:
+            cmd.append('--zap-disk')
         cmd.append(dev)
         if osd_journal and os.path.exists(osd_journal):
             cmd.append(osd_journal)
@@ -357,9 +359,8 @@ def osdize_dev(dev, osd_format, osd_journal, reformat_osd=False):
         # Just provide the device - no other options
         # for older versions of ceph
         cmd.append(dev)
-
-    if reformat_osd:
-        zap_disk(dev)
+        if reformat_osd:
+            zap_disk(dev)
 
     subprocess.check_call(cmd)
 
