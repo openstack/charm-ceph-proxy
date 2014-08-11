@@ -20,6 +20,9 @@ from charmhelpers.fetch import (
 )
 
 from charmhelpers.contrib.network import ip
+from charmhelpers.contrib.network.ip import (
+    get_ipv6_addr,
+)
 
 TEMPLATES_DIR = 'templates'
 
@@ -64,6 +67,9 @@ def get_unit_hostname():
 
 @cached
 def get_host_ip(hostname=None):
+    if config('prefer-ipv6'):
+        return '[%s]' % get_ipv6_addr()
+
     hostname = hostname or unit_get('private-address')
     try:
         # Test to see if already an IPv4 address

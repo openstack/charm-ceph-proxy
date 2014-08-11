@@ -40,7 +40,10 @@ from charmhelpers.fetch import (
 )
 from charmhelpers.payload.execd import execd_preinstall
 from charmhelpers.contrib.openstack.alternatives import install_alternative
-from charmhelpers.contrib.network.ip import is_ipv6
+from charmhelpers.contrib.network.ip import (
+    is_ipv6,
+    get_ipv6_addr,
+)
 
 from utils import (
     render_template,
@@ -67,6 +70,11 @@ def install():
 
 
 def emit_cephconf():
+    if config('prefer-ipv6'):
+        host_ip = '[%s]' % get_ipv6_addr()
+    #else:
+    #    host_ip = '0.0.0.0'
+
     cephcontext = {
         'auth_supported': config('auth-supported'),
         'mon_hosts': ' '.join(get_mon_hosts()),
@@ -76,6 +84,7 @@ def emit_cephconf():
         'use_syslog': str(config('use-syslog')).lower(),
         'ceph_public_network': config('ceph-public-network'),
         'ceph_cluster_network': config('ceph-cluster-network'),
+        'host_ip': host_ip,
     }
     # Install ceph.conf as an alternative to support
     # co-existence with other charms that write this file
@@ -139,7 +148,11 @@ def get_mon_hosts():
 
     for relid in relation_ids('mon'):
         for unit in related_units(relid):
-            addr = relation_get('ceph-public-address', unit, relid)
+            if config('prefer-ipv6'):
+                addr = relation_get('ceph-public-address', unit, relid)
+            else:
+                addr = relation_get('private-address', unit, relid)
+
             if addr is not None:
                 if is_ipv6(addr):
                     hosts.append('[{}]:6789'.format(addr))
@@ -176,6 +189,14 @@ def mon_relation_joined():
             'mon-relation-changed')
 def mon_relation():
     emit_cephconf()
+    
+    if config('prefer-ipv6'):
+        host = '[%s]' % get_ipv6_addr()
+    else:
+        host = unit_get('private-address')
+    relation_data = {}
+    relation_data['private-address'] = host
+    relation_set(**relation_data)
 
     moncount = int(config('monitor-count'))
     if len(get_mon_hosts()) >= moncount:
@@ -254,9 +275,28 @@ def radosgw_relation(relid=None):
     else:
         log('mon cluster not in quorum - deferring key provision')
 
+    if config('prefer-ipv6'):
+        host = '[%s]' % get_ipv6_addr()
+    else:
+        host = unit_get('private-address')
+
+    relation_data = {}
+    relation_data['private-address'] = host
+    relation_set(**relation_data)
+
+    log('End radosgw-relation hook.')
+
 
 @hooks.hook('client-relation-joined')
 def client_relation(relid=None):
+    if config('prefer-ipv6'):
+        host = '[%s]' % get_ipv6_addr()
+    else:
+        host = unit_get('private-address')
+    relation_data = {}
+    relation_data['private-address'] = host
+    relation_set(**relation_data)
+
     if ceph.is_quorum():
         log('mon cluster in quorum - providing client with keys')
         service_name = None
