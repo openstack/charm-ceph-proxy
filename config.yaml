@@ -80,6 +80,16 @@ options:
       .
       Specifying this option (any value) forces a reformat of any OSD devices
       found which are not already mounted.
+  ignore-device-errors:
+    type: boolean
+    default: False
+    description: |
+      By default, the charm will raise errors if a whitelisted device is found,
+      but for some reason the charm is unable to initialize the device for use
+      by Ceph.
+      .
+      Setting this option to 'True' will result in the charm classifying such
+      problems as warnings only and will not result in a hook error.
   ephemeral-unmount:
     type: string
     description: |
