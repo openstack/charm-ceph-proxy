@@ -91,12 +91,11 @@ options:
       testing purposes (cloud deployment is not a typical use case).
   source:
     type: string
-    default: cloud:precise-updates/folsom
     description: |
       Optional configuration to support use of additional sources such as:
       .
         - ppa:myteam/ppa
-        - cloud:precise-proposed/folsom
+        - cloud:precise-proposed/icehouse
         - http://my.archive.com/ubuntu main
       .
       The last option should be used in conjunction with the key configuration
