@@ -5,7 +5,8 @@ lint:
 	@charm proof
 
 sync:
-	@charm-helper-sync -c charm-helpers-sync.yaml
+	@charm-helper-sync -c charm-helpers-hooks.yaml
+	@charm-helper-sync -c charm-helpers-tests.yaml
 
 publish: lint
 	bzr push lp:charms/ceph
