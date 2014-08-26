@@ -1,0 +1,11 @@
+#!/usr/bin/python
+
+"""Amulet tests on a basic ceph deployment on precise-icehouse."""
+
+from basic_deployment import CephBasicDeployment
+
+if __name__ == '__main__':
+    deployment = CephBasicDeployment(series='precise',
+                                     openstack='cloud:precise-icehouse',
+                                     source='cloud:precise-updates/icehouse')
+    deployment.run_tests()
