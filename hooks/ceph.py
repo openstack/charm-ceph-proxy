@@ -19,11 +19,12 @@ from charmhelpers.core.host import (
 from charmhelpers.core.hookenv import (
     log,
     ERROR,
+    WARNING,
 )
 from charmhelpers.contrib.storage.linux.utils import (
     zap_disk,
     is_block_device,
-    is_device_mounted
+    is_device_mounted,
 )
 from utils import (
     get_unit_hostname,
@@ -320,14 +321,16 @@ def update_monfs():
             pass
 
 
-def osdize(dev, osd_format, osd_journal, reformat_osd=False):
+def osdize(dev, osd_format, osd_journal, reformat_osd=False,
+           ignore_errors=False):
     if dev.startswith('/dev'):
-        osdize_dev(dev, osd_format, osd_journal, reformat_osd)
+        osdize_dev(dev, osd_format, osd_journal, reformat_osd, ignore_errors)
     else:
         osdize_dir(dev)
 
 
-def osdize_dev(dev, osd_format, osd_journal, reformat_osd=False):
+def osdize_dev(dev, osd_format, osd_journal, reformat_osd=False,
+               ignore_errors=False):
     if not os.path.exists(dev):
         log('Path {} does not exist - bailing'.format(dev))
         return
@@ -346,7 +349,7 @@ def osdize_dev(dev, osd_format, osd_journal, reformat_osd=False):
 
     cmd = ['ceph-disk-prepare']
     # Later versions of ceph support more options
-    if cmp_pkgrevno('ceph', "0.48.3") >= 0:
+    if cmp_pkgrevno('ceph', '0.48.3') >= 0:
         if osd_format:
             cmd.append('--fs-type')
             cmd.append(osd_format)
@@ -362,7 +365,14 @@ def osdize_dev(dev, osd_format, osd_journal, reformat_osd=False):
         if reformat_osd:
             zap_disk(dev)
 
-    subprocess.check_call(cmd)
+    try:
+        subprocess.check_call(cmd)
+    except subprocess.CalledProcessError as e:
+        if ignore_errors:
+            log('Enable to initialize device: {}'.format(dev), WARNING)
+        else:
+            log('Enable to initialize device: {}'.format(dev), ERROR)
+            raise e
 
 
 def osdize_dir(path):
