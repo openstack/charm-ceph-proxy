@@ -369,9 +369,9 @@ def osdize_dev(dev, osd_format, osd_journal, reformat_osd=False,
         subprocess.check_call(cmd)
     except subprocess.CalledProcessError as e:
         if ignore_errors:
-            log('Enable to initialize device: {}'.format(dev), WARNING)
+            log('Unable to initialize device: {}'.format(dev), WARNING)
         else:
-            log('Enable to initialize device: {}'.format(dev), ERROR)
+            log('Unable to initialize device: {}'.format(dev), ERROR)
             raise e
 
 
