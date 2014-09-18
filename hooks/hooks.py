@@ -23,7 +23,8 @@ from charmhelpers.core.hookenv import (
     relation_set,
     remote_unit,
     Hooks, UnregisteredHookError,
-    service_name
+    service_name,
+    unit_get
 )
 
 from charmhelpers.core.host import (
@@ -42,12 +43,13 @@ from charmhelpers.payload.execd import execd_preinstall
 from charmhelpers.contrib.openstack.alternatives import install_alternative
 from charmhelpers.contrib.network.ip import (
     is_ipv6,
-    get_ipv6_addr,
+    get_ipv6_addr
 )
 
 from utils import (
     render_template,
     get_public_addr,
+    setup_ipv6
 )
 
 hooks = Hooks()
@@ -58,6 +60,9 @@ def install_upstart_scripts():
     if cmp_pkgrevno('ceph', "0.55.1") < 0:
         for x in glob.glob('files/upstart/*.conf'):
             shutil.copy(x, '/etc/init/')
+
+    if config('prefer-ipv6'):
+        setup_ipv6()
 
 
 @hooks.hook('install')
@@ -71,9 +76,7 @@ def install():
 
 def emit_cephconf():
     if config('prefer-ipv6'):
-        host_ip = '[%s]' % get_ipv6_addr()
-    #else:
-    #    host_ip = '0.0.0.0'
+        host_ip = '%s' % get_ipv6_addr()
 
     cephcontext = {
         'auth_supported': config('auth-supported'),
@@ -101,6 +104,9 @@ JOURNAL_ZAPPED = '/var/lib/ceph/journal_zapped'
 @hooks.hook('config-changed')
 def config_changed():
     log('Monitor hosts are ' + repr(get_mon_hosts()))
+
+    if config('prefer-ipv6'):
+        setup_ipv6()
 
     # Pre-flight checks
     if not config('fsid'):
@@ -189,11 +195,12 @@ def mon_relation_joined():
             'mon-relation-changed')
 def mon_relation():
     emit_cephconf()
-    
+
     if config('prefer-ipv6'):
-        host = '[%s]' % get_ipv6_addr()
+        host = get_ipv6_addr()
     else:
         host = unit_get('private-address')
+
     relation_data = {}
     relation_data['private-address'] = host
     relation_set(**relation_data)
@@ -276,7 +283,7 @@ def radosgw_relation(relid=None):
         log('mon cluster not in quorum - deferring key provision')
 
     if config('prefer-ipv6'):
-        host = '[%s]' % get_ipv6_addr()
+        host = get_ipv6_addr()
     else:
         host = unit_get('private-address')
 
@@ -290,9 +297,10 @@ def radosgw_relation(relid=None):
 @hooks.hook('client-relation-joined')
 def client_relation(relid=None):
     if config('prefer-ipv6'):
-        host = '[%s]' % get_ipv6_addr()
+        host = get_ipv6_addr()
     else:
         host = unit_get('private-address')
+
     relation_data = {}
     relation_data['private-address'] = host
     relation_set(**relation_data)

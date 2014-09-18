@@ -19,9 +19,13 @@ from charmhelpers.fetch import (
     filter_installed_packages
 )
 
+from charmhelpers.core.host import (
+    lsb_release
+)
+
 from charmhelpers.contrib.network import ip
 from charmhelpers.contrib.network.ip import (
-    get_ipv6_addr,
+    get_ipv6_addr
 )
 
 TEMPLATES_DIR = 'templates'
@@ -87,3 +91,10 @@ def get_host_ip(hostname=None):
 def get_public_addr():
     return ip.get_address_in_network(config('ceph-public-network'),
                                      fallback=get_host_ip())
+
+
+def setup_ipv6():
+    ubuntu_rel = float(lsb_release()['DISTRIB_RELEASE'])
+    if ubuntu_rel < 14.04:
+        raise Exception("IPv6 is not supported for Ubuntu "
+                        "versions less than Trusty 14.04")
