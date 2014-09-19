@@ -25,6 +25,7 @@ from charmhelpers.core.host import (
 
 from charmhelpers.contrib.network import ip
 from charmhelpers.contrib.network.ip import (
+    is_ipv6,
     get_ipv6_addr
 )
 
@@ -71,9 +72,6 @@ def get_unit_hostname():
 
 @cached
 def get_host_ip(hostname=None):
-    if config('prefer-ipv6'):
-        return '[%s]' % get_ipv6_addr()
-
     hostname = hostname or unit_get('private-address')
     try:
         # Test to see if already an IPv4 address
@@ -89,8 +87,14 @@ def get_host_ip(hostname=None):
 
 @cached
 def get_public_addr():
-    return ip.get_address_in_network(config('ceph-public-network'),
-                                     fallback=get_host_ip())
+    addr = config('ceph-public-network')
+    if config('prefer-ipv6'):
+        if addr and is_ipv6_addr(addr):
+            return addr
+        else:
+            return get_ipv6_addr() 
+    else:
+        return ip.get_address_in_network(addr, fallback=get_host_ip())
 
 
 def setup_ipv6():
