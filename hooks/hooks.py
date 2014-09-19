@@ -76,7 +76,7 @@ def install():
 
 def emit_cephconf():
     if config('prefer-ipv6'):
-        host_ip = '%s' % get_ipv6_addr()
+        host_ip = '%s' % get_ipv6_addr()[0]
 
     cephcontext = {
         'auth_supported': config('auth-supported'),
@@ -197,7 +197,7 @@ def mon_relation():
     emit_cephconf()
 
     if config('prefer-ipv6'):
-        host = get_ipv6_addr()
+        host = get_ipv6_addr()[0]
     else:
         host = unit_get('private-address')
 
@@ -283,7 +283,7 @@ def radosgw_relation(relid=None):
         log('mon cluster not in quorum - deferring key provision')
 
     if config('prefer-ipv6'):
-        host = get_ipv6_addr()
+        host = get_ipv6_addr()[0]
     else:
         host = unit_get('private-address')
 
@@ -297,7 +297,7 @@ def radosgw_relation(relid=None):
 @hooks.hook('client-relation-joined')
 def client_relation(relid=None):
     if config('prefer-ipv6'):
-        host = get_ipv6_addr()
+        host = get_ipv6_addr()[0]
     else:
         host = unit_get('private-address')
 

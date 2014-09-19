@@ -92,7 +92,7 @@ def get_public_addr():
         if addr and is_ipv6(addr):
             return addr
         else:
-            return get_ipv6_addr()
+            return get_ipv6_addr()[0]
     else:
         return ip.get_address_in_network(addr, fallback=get_host_ip())
 
