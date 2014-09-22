@@ -77,6 +77,8 @@ def install():
 def emit_cephconf():
     if config('prefer-ipv6'):
         host_ip = '%s' % get_ipv6_addr()[0]
+    else:
+        host_ip = unit_get('private-address')
 
     cephcontext = {
         'auth_supported': config('auth-supported'),
