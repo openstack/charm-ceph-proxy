@@ -142,7 +142,7 @@ def config_changed():
     if ceph.is_bootstrapped():
         for dev in get_devices():
             ceph.osdize(dev, config('osd-format'), config('osd-journal'),
-                        reformat_osd())
+                        reformat_osd(), config('ignore-device-errors'))
         ceph.start_osds(get_devices())
 
 
@@ -213,7 +213,7 @@ def mon_relation():
         ceph.wait_for_bootstrap()
         for dev in get_devices():
             ceph.osdize(dev, config('osd-format'), config('osd-journal'),
-                        reformat_osd())
+                        reformat_osd(), config('ignore-device-errors'))
         ceph.start_osds(get_devices())
         notify_osds()
         notify_radosgws()

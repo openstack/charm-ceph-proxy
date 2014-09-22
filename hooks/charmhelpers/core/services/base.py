@@ -118,9 +118,6 @@ class ServiceManager(object):
         else:
             self.provide_data()
             self.reconfigure_services()
-        cfg = hookenv.config()
-        if cfg.implicit_save:
-            cfg.save()
 
     def provide_data(self):
         """
