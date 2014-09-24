@@ -25,7 +25,6 @@ from charmhelpers.core.host import (
 
 from charmhelpers.contrib.network import ip
 from charmhelpers.contrib.network.ip import (
-    is_ipv6,
     get_ipv6_addr
 )
 
@@ -72,6 +71,9 @@ def get_unit_hostname():
 
 @cached
 def get_host_ip(hostname=None):
+    if config('prefer-ipv6'):
+        return get_ipv6_addr()[0]
+
     hostname = hostname or unit_get('private-address')
     try:
         # Test to see if already an IPv4 address
@@ -87,18 +89,12 @@ def get_host_ip(hostname=None):
 
 @cached
 def get_public_addr():
-    addr = config('ceph-public-network')
-    if config('prefer-ipv6'):
-        if addr and is_ipv6(addr):
-            return addr
-        else:
-            return get_ipv6_addr()[0]
-    else:
-        return ip.get_address_in_network(addr, fallback=get_host_ip())
+    network = config('ceph-public-network')
+    return ip.get_address_in_network(network, fallback=get_host_ip())
 
 
-def setup_ipv6():
-    ubuntu_rel = float(lsb_release()['DISTRIB_RELEASE'])
-    if ubuntu_rel < 14.04:
-        raise Exception("IPv6 is not supported for Ubuntu "
+def assert_charm_supports_ipv6():
+    """Check whether we are able to support charms ipv6."""
+    if lsb_release()['DISTRIB_CODENAME'].lower() < "trusty":
+        raise Exception("IPv6 is not supported in the charms for Ubuntu "
                         "versions less than Trusty 14.04")

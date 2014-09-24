@@ -23,8 +23,7 @@ from charmhelpers.core.hookenv import (
     relation_set,
     remote_unit,
     Hooks, UnregisteredHookError,
-    service_name,
-    unit_get
+    service_name
 )
 
 from charmhelpers.core.host import (
@@ -42,14 +41,14 @@ from charmhelpers.fetch import (
 from charmhelpers.payload.execd import execd_preinstall
 from charmhelpers.contrib.openstack.alternatives import install_alternative
 from charmhelpers.contrib.network.ip import (
-    is_ipv6,
-    get_ipv6_addr
+    is_ipv6
 )
 
 from utils import (
     render_template,
     get_public_addr,
-    setup_ipv6
+    assert_charm_supports_ipv6,
+    get_host_ip
 )
 
 hooks = Hooks()
@@ -62,7 +61,7 @@ def install_upstart_scripts():
             shutil.copy(x, '/etc/init/')
 
     if config('prefer-ipv6'):
-        setup_ipv6()
+        assert_charm_supports_ipv6()
 
 
 @hooks.hook('install')
@@ -75,11 +74,6 @@ def install():
 
 
 def emit_cephconf():
-    if config('prefer-ipv6'):
-        host_ip = '%s' % get_ipv6_addr()[0]
-    else:
-        host_ip = unit_get('private-address')
-
     cephcontext = {
         'auth_supported': config('auth-supported'),
         'mon_hosts': ' '.join(get_mon_hosts()),
@@ -88,8 +82,7 @@ def emit_cephconf():
         'osd_journal_size': config('osd-journal-size'),
         'use_syslog': str(config('use-syslog')).lower(),
         'ceph_public_network': config('ceph-public-network'),
-        'ceph_cluster_network': config('ceph-cluster-network'),
-        'host_ip': host_ip,
+        'ceph_cluster_network': config('ceph-cluster-network')
     }
     # Install ceph.conf as an alternative to support
     # co-existence with other charms that write this file
@@ -105,10 +98,10 @@ JOURNAL_ZAPPED = '/var/lib/ceph/journal_zapped'
 
 @hooks.hook('config-changed')
 def config_changed():
-    log('Monitor hosts are ' + repr(get_mon_hosts()))
-
     if config('prefer-ipv6'):
-        setup_ipv6()
+        assert_charm_supports_ipv6()
+
+    log('Monitor hosts are ' + repr(get_mon_hosts()))
 
     # Pre-flight checks
     if not config('fsid'):
@@ -157,10 +150,11 @@ def get_mon_hosts():
     for relid in relation_ids('mon'):
         for unit in related_units(relid):
             if config('prefer-ipv6'):
-                addr = relation_get('ceph-public-address', unit, relid)
+                r_attr = 'ceph-public-address'
             else:
-                addr = relation_get('private-address', unit, relid)
+                r_attr = 'private-address'
 
+            addr = relation_get(r_attr, unit, relid)
             if addr is not None:
                 if is_ipv6(addr):
                     hosts.append('[{}]:6789'.format(addr))
@@ -188,23 +182,16 @@ def get_devices():
 @hooks.hook('mon-relation-joined')
 def mon_relation_joined():
     for relid in relation_ids('mon'):
-        relation_set(relation_id=relid,
-                     relation_settings={'ceph-public-address':
-                                        get_public_addr()})
+        settings = {'ceph-public-address': get_public_addr()}
+        relation_set(relation_id=relid, relation_settings=settings)
 
 
 @hooks.hook('mon-relation-departed',
             'mon-relation-changed')
 def mon_relation():
     emit_cephconf()
-
-    if config('prefer-ipv6'):
-        host = get_ipv6_addr()[0]
-    else:
-        host = unit_get('private-address')
-
     relation_data = {}
-    relation_data['private-address'] = host
+    relation_data['private-address'] = get_host_ip()
     relation_set(**relation_data)
 
     moncount = int(config('monitor-count'))
@@ -284,11 +271,7 @@ def radosgw_relation(relid=None):
     else:
         log('mon cluster not in quorum - deferring key provision')
 
-    if config('prefer-ipv6'):
-        host = get_ipv6_addr()[0]
-    else:
-        host = unit_get('private-address')
-
+    host = get_host_ip()
     relation_data = {}
     relation_data['private-address'] = host
     relation_set(**relation_data)
@@ -298,11 +281,7 @@ def radosgw_relation(relid=None):
 
 @hooks.hook('client-relation-joined')
 def client_relation(relid=None):
-    if config('prefer-ipv6'):
-        host = get_ipv6_addr()[0]
-    else:
-        host = unit_get('private-address')
-
+    host = get_host_ip()
     relation_data = {}
     relation_data['private-address'] = host
     relation_set(**relation_data)
