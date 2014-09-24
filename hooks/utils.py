@@ -71,10 +71,10 @@ def get_unit_hostname():
 
 @cached
 def get_host_ip(hostname=None):
-    if config('prefer-ipv6'):
-        return get_ipv6_addr()[0]
-
     hostname = hostname or unit_get('private-address')
+    if config('prefer-ipv6'):
+        return hostname or get_ipv6_addr()[0]
+
     try:
         # Test to see if already an IPv4 address
         socket.inet_aton(hostname)
