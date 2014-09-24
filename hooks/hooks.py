@@ -271,9 +271,8 @@ def radosgw_relation(relid=None):
     else:
         log('mon cluster not in quorum - deferring key provision')
 
-    host = get_host_ip()
     relation_data = {}
-    relation_data['private-address'] = host
+    relation_data['private-address'] = get_host_ip()
     relation_set(**relation_data)
 
     log('End radosgw-relation hook.')
@@ -281,9 +280,8 @@ def radosgw_relation(relid=None):
 
 @hooks.hook('client-relation-joined')
 def client_relation(relid=None):
-    host = get_host_ip()
     relation_data = {}
-    relation_data['private-address'] = host
+    relation_data['private-address'] = get_host_ip()
     relation_set(**relation_data)
 
     if ceph.is_quorum():
