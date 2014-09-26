@@ -117,15 +117,7 @@ class BaseFetchHandler(object):
 
 def filter_installed_packages(packages):
     """Returns a list of packages that require installation"""
-    import apt_pkg
-    apt_pkg.init()
-
-    # Tell apt to build an in-memory cache to prevent race conditions (if
-    # another process is already building the cache).
-    apt_pkg.config.set("Dir::Cache::pkgcache", "")
-    apt_pkg.config.set("Dir::Cache::srcpkgcache", "")
-
-    cache = apt_pkg.Cache()
+    cache = apt_cache()
     _pkgs = []
     for package in packages:
         try:
@@ -136,6 +128,16 @@ def filter_installed_packages(packages):
                 level='WARNING')
             _pkgs.append(package)
     return _pkgs
+
+
+def apt_cache(in_memory=True):
+    """Build and return an apt cache"""
+    import apt_pkg
+    apt_pkg.init()
+    if in_memory:
+        apt_pkg.config.set("Dir::Cache::pkgcache", "")
+        apt_pkg.config.set("Dir::Cache::srcpkgcache", "")
+    return apt_pkg.Cache()
 
 
 def apt_install(packages, options=None, fatal=False):
@@ -206,7 +208,8 @@ def add_source(source, key=None):
     """Add a package source to this system.
 
     @param source: a URL or sources.list entry, as supported by
-    add-apt-repository(1). Examples:
+    add-apt-repository(1). Examples::
+
         ppa:charmers/example
         deb https://stub:key@private.example.com/ubuntu trusty main
 
@@ -309,22 +312,35 @@ def configure_sources(update=False,
         apt_update(fatal=True)
 
 
-def install_remote(source):
+def install_remote(source, *args, **kwargs):
     """
     Install a file tree from a remote source
 
     The specified source should be a url of the form:
         scheme://[host]/path[#[option=value][&...]]
 
-    Schemes supported are based on this modules submodules
-    Options supported are submodule-specific"""
+    Schemes supported are based on this modules submodules.
+    Options supported are submodule-specific.
+    Additional arguments are passed through to the submodule.
+
+    For example::
+
+        dest = install_remote('http://example.com/archive.tgz',
+                              checksum='deadbeef',
+                              hash_type='sha1')
+
+    This will download `archive.tgz`, validate it using SHA1 and, if
+    the file is ok, extract it and return the directory in which it
+    was extracted.  If the checksum fails, it will raise
+    :class:`charmhelpers.core.host.ChecksumError`.
+    """
     # We ONLY check for True here because can_handle may return a string
     # explaining why it can't handle a given source.
     handlers = [h for h in plugins() if h.can_handle(source) is True]
     installed_to = None
     for handler in handlers:
         try:
-            installed_to = handler.install(source)
+            installed_to = handler.install(source, *args, **kwargs)
         except UnhandledSource:
             pass
     if not installed_to:
