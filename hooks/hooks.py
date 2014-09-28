@@ -41,15 +41,15 @@ from charmhelpers.fetch import (
 from charmhelpers.payload.execd import execd_preinstall
 from charmhelpers.contrib.openstack.alternatives import install_alternative
 from charmhelpers.contrib.network.ip import (
-    is_ipv6
+    is_ipv6,
+    get_ipv6_addr
 )
 
 from utils import (
     render_template,
     get_public_addr,
     assert_charm_supports_ipv6,
-    get_host_ip,
-    get_network
+    get_host_ip
 )
 
 hooks = Hooks()
@@ -87,11 +87,11 @@ def emit_cephconf():
     }
 
     if config('prefer-ipv6'):
-        network = get_network()
+        dynamic_ipv6_address = get_ipv6_addr()[0]
         if not config('ceph-public-network'):
-            cephcontext['ceph_public_network'] = network
+            cephcontext['public_addr'] = dynamic_ipv6_address
         if not config('ceph-cluster-network'):
-            cephcontext['ceph_cluster_network'] = network
+            cephcontext['cluster_addr'] = dynamic_ipv6_address
 
     # Install ceph.conf as an alternative to support
     # co-existence with other charms that write this file
