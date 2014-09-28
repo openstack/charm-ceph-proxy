@@ -48,7 +48,8 @@ from utils import (
     render_template,
     get_public_addr,
     assert_charm_supports_ipv6,
-    get_host_ip
+    get_host_ip,
+    get_network
 )
 
 hooks = Hooks()
@@ -84,6 +85,14 @@ def emit_cephconf():
         'ceph_public_network': config('ceph-public-network'),
         'ceph_cluster_network': config('ceph-cluster-network')
     }
+
+    if config('prefer-ipv6'):
+        network = get_network()
+        if not config('ceph-public-network'):
+            cephcontext['ceph_public_network'] = network
+        if not config('ceph-cluster-network'):
+            cephcontext['ceph_cluster_network'] = network
+
     # Install ceph.conf as an alternative to support
     # co-existence with other charms that write this file
     charm_ceph_conf = "/var/lib/charm/{}/ceph.conf".format(service_name())

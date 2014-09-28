@@ -98,3 +98,33 @@ def assert_charm_supports_ipv6():
     if lsb_release()['DISTRIB_CODENAME'].lower() < "trusty":
         raise Exception("IPv6 is not supported in the charms for Ubuntu "
                         "versions less than Trusty 14.04")
+
+
+def get_network(iface="eth0"):
+    try:
+        try:
+            import netifaces
+        except ImportError:
+            apt_install('python-netifaces')
+            import netifaces
+
+        try:
+            from netaddr import IPNetwork
+        except ImportError:
+            apt_install('python-netaddr', fatal=True)
+            from netaddr import IPNetwork
+
+        ipv6_address = get_ipv6_addr(iface)[0]
+        ifa_addrs = netifaces.ifaddresses(iface)
+
+        for ifaddr in ifa_addrs[netifaces.AF_INET6]:
+            if ipv6_address == ifaddr['addr']:
+                network = "{}/{}".format(ifaddr['addr'],
+                                         ifaddr['netmask'])
+                ip = IPNetwork(network)
+                return str(ip.network)
+
+    except ValueError:
+        raise Exception("Invalid interface '%s'" % iface)
+
+    raise Exception("No valid network found in interface '%s'" % iface)
