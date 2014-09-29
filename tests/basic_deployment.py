@@ -19,7 +19,8 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
 
     def __init__(self, series=None, openstack=None, source=None, stable=False):
         """Deploy the entire test environment."""
-        super(CephBasicDeployment, self).__init__(series, openstack, source, stable)
+        super(CephBasicDeployment, self).__init__(series, openstack, source,
+                                                  stable)
         self._add_services()
         self._add_relations()
         self._configure_services()
