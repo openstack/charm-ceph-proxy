@@ -287,9 +287,6 @@ def radosgw_relation(relid=None):
 
 @hooks.hook('client-relation-joined')
 def client_relation(relid=None):
-    relation_data = {'private-address': get_host_ip()}
-    relation_set(**relation_data)
-
     if ceph.is_quorum():
         log('mon cluster in quorum - providing client with keys')
         service_name = None
@@ -304,6 +301,7 @@ def client_relation(relid=None):
                 'key': ceph.get_named_key(service_name),
                 'auth': config('auth-supported'),
                 'ceph-public-address': get_public_addr(),
+                'private-address': get_host_ip()
             }
             relation_set(relation_id=relid,
                          relation_settings=data)
