@@ -41,15 +41,14 @@ from charmhelpers.fetch import (
 from charmhelpers.payload.execd import execd_preinstall
 from charmhelpers.contrib.openstack.alternatives import install_alternative
 from charmhelpers.contrib.network.ip import (
-    is_ipv6,
-    get_ipv6_addr
+    get_ipv6_addr,
+    format_ipv6_addr
 )
 
 from utils import (
     render_template,
     get_public_addr,
-    assert_charm_supports_ipv6,
-    get_host_ip
+    assert_charm_supports_ipv6
 )
 
 hooks = Hooks()
@@ -60,9 +59,6 @@ def install_upstart_scripts():
     if cmp_pkgrevno('ceph', "0.55.1") < 0:
         for x in glob.glob('files/upstart/*.conf'):
             shutil.copy(x, '/etc/init/')
-
-    if config('prefer-ipv6'):
-        assert_charm_supports_ipv6()
 
 
 @hooks.hook('install')
@@ -83,7 +79,7 @@ def emit_cephconf():
         'osd_journal_size': config('osd-journal-size'),
         'use_syslog': str(config('use-syslog')).lower(),
         'ceph_public_network': config('ceph-public-network'),
-        'ceph_cluster_network': config('ceph-cluster-network')
+        'ceph_cluster_network': config('ceph-cluster-network'),
     }
 
     if config('prefer-ipv6'):
@@ -151,24 +147,14 @@ def config_changed():
 def get_mon_hosts():
     hosts = []
     addr = get_public_addr()
-    if is_ipv6(addr):
-        hosts.append('[{}]:6789'.format(addr))
-    else:
-        hosts.append('{}:6789'.format(addr))
+    hosts.append('{}:6789'.format(format_ipv6_addr(addr) or addr))
 
     for relid in relation_ids('mon'):
         for unit in related_units(relid):
-            if config('prefer-ipv6'):
-                r_attr = 'ceph-public-address'
-            else:
-                r_attr = 'private-address'
-
-            addr = relation_get(r_attr, unit, relid)
+            addr = relation_get('ceph-public-address', unit, relid)
             if addr is not None:
-                if is_ipv6(addr):
-                    hosts.append('[{}]:6789'.format(addr))
-                else:
-                    hosts.append('{}:6789'.format(addr))
+                hosts.append('{}:6789'.format(
+                    format_ipv6_addr(addr) or addr))
 
     hosts.sort()
     return hosts
@@ -191,16 +177,15 @@ def get_devices():
 @hooks.hook('mon-relation-joined')
 def mon_relation_joined():
     for relid in relation_ids('mon'):
-        settings = {'ceph-public-address': get_public_addr()}
-        relation_set(relation_id=relid, relation_settings=settings)
+        relation_set(relation_id=relid,
+                     relation_settings={'ceph-public-address':
+                                        get_public_addr()})
 
 
 @hooks.hook('mon-relation-departed',
             'mon-relation-changed')
 def mon_relation():
     emit_cephconf()
-    relation_data = {'private-address': get_host_ip()}
-    relation_set(**relation_data)
 
     moncount = int(config('monitor-count'))
     if len(get_mon_hosts()) >= moncount:
@@ -279,11 +264,6 @@ def radosgw_relation(relid=None):
     else:
         log('mon cluster not in quorum - deferring key provision')
 
-    relation_data = {'private-address': get_host_ip()}
-    relation_set(**relation_data)
-
-    log('End radosgw-relation hook.')
-
 
 @hooks.hook('client-relation-joined')
 def client_relation(relid=None):
@@ -301,7 +281,6 @@ def client_relation(relid=None):
                 'key': ceph.get_named_key(service_name),
                 'auth': config('auth-supported'),
                 'ceph-public-address': get_public_addr(),
-                'private-address': get_host_ip()
             }
             relation_set(relation_id=relid,
                          relation_settings=data)

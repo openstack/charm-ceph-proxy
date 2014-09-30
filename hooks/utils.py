@@ -72,7 +72,7 @@ def get_unit_hostname():
 @cached
 def get_host_ip(hostname=None):
     if config('prefer-ipv6'):
-        return hostname or get_ipv6_addr()[0]
+        return get_ipv6_addr()[0]
 
     hostname = hostname or unit_get('private-address')
     try:
@@ -89,8 +89,8 @@ def get_host_ip(hostname=None):
 
 @cached
 def get_public_addr():
-    network = config('ceph-public-network')
-    return ip.get_address_in_network(network, fallback=get_host_ip())
+    return ip.get_address_in_network(config('ceph-public-network'),
+                                     fallback=get_host_ip())
 
 
 def assert_charm_supports_ipv6():
