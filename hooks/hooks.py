@@ -40,11 +40,15 @@ from charmhelpers.fetch import (
 )
 from charmhelpers.payload.execd import execd_preinstall
 from charmhelpers.contrib.openstack.alternatives import install_alternative
-from charmhelpers.contrib.network.ip import is_ipv6
+from charmhelpers.contrib.network.ip import (
+    get_ipv6_addr,
+    format_ipv6_addr
+)
 
 from utils import (
     render_template,
     get_public_addr,
+    assert_charm_supports_ipv6
 )
 
 hooks = Hooks()
@@ -77,6 +81,14 @@ def emit_cephconf():
         'ceph_public_network': config('ceph-public-network'),
         'ceph_cluster_network': config('ceph-cluster-network'),
     }
+
+    if config('prefer-ipv6'):
+        dynamic_ipv6_address = get_ipv6_addr()[0]
+        if not config('ceph-public-network'):
+            cephcontext['public_addr'] = dynamic_ipv6_address
+        if not config('ceph-cluster-network'):
+            cephcontext['cluster_addr'] = dynamic_ipv6_address
+
     # Install ceph.conf as an alternative to support
     # co-existence with other charms that write this file
     charm_ceph_conf = "/var/lib/charm/{}/ceph.conf".format(service_name())
@@ -91,6 +103,9 @@ JOURNAL_ZAPPED = '/var/lib/ceph/journal_zapped'
 
 @hooks.hook('config-changed')
 def config_changed():
+    if config('prefer-ipv6'):
+        assert_charm_supports_ipv6()
+
     log('Monitor hosts are ' + repr(get_mon_hosts()))
 
     # Pre-flight checks
@@ -132,19 +147,14 @@ def config_changed():
 def get_mon_hosts():
     hosts = []
     addr = get_public_addr()
-    if is_ipv6(addr):
-        hosts.append('[{}]:6789'.format(addr))
-    else:
-        hosts.append('{}:6789'.format(addr))
+    hosts.append('{}:6789'.format(format_ipv6_addr(addr) or addr))
 
     for relid in relation_ids('mon'):
         for unit in related_units(relid):
             addr = relation_get('ceph-public-address', unit, relid)
             if addr is not None:
-                if is_ipv6(addr):
-                    hosts.append('[{}]:6789'.format(addr))
-                else:
-                    hosts.append('{}:6789'.format(addr))
+                hosts.append('{}:6789'.format(
+                    format_ipv6_addr(addr) or addr))
 
     hosts.sort()
     return hosts
