@@ -1,6 +1,7 @@
 options:
   fsid:
     type: string
+    default:
     description: |
       fsid of the ceph cluster. To generate a suitable value use `uuid`
       .
@@ -17,6 +18,7 @@ options:
       enabled later.
   monitor-secret:
     type: string
+    default:
     description: |
       This value will become the mon. key. To generate a suitable value use:
       .
@@ -44,6 +46,7 @@ options:
       charm assumes anything not starting with /dev is a directory instead.
   osd-journal:
     type: string
+    default:
     description: |
       The device to use as a shared journal drive for all OSD's.  By default
       no journal device will be used.
@@ -73,6 +76,7 @@ options:
       Only supported with ceph >= 0.48.3.
   osd-reformat:
     type: string
+    default:
     description: |
       By default, the charm will not re-format a device that already looks
       as if it might be an OSD device.  This is a safeguard to try to
@@ -92,6 +96,7 @@ options:
       problems as warnings only and will not result in a hook error.
   ephemeral-unmount:
     type: string
+    default:
     description: |
       Cloud instances provider ephermeral storage which is normally mounted
       on /mnt.
@@ -101,6 +106,7 @@ options:
       testing purposes (cloud deployment is not a typical use case).
   source:
     type: string
+    default:
     description: |
       Optional configuration to support use of additional sources such as:
       .
@@ -116,6 +122,7 @@ options:
       for precise but is provided in the Folsom cloud archive.
   key:
     type: string
+    default:
     description: |
       Key ID to import to the apt keyring to support use with arbitary source
       configuration from outside of Launchpad archives or PPA's.
@@ -125,15 +132,17 @@ options:
     description: |
       If set to True, supporting services will log to syslog.
   ceph-public-network:
-     type: string
-     description: |
-        The IP address and netmask of the public (front-side) network (e.g.,
-        192.168.0.0/24)
+    type: string
+    default:
+    description: |
+      The IP address and netmask of the public (front-side) network (e.g.,
+      192.168.0.0/24)
   ceph-cluster-network:
-     type: string
-     description: |
-        The IP address and netmask of the cluster (back-side) network (e.g.,
-        192.168.0.0/24)
+    type: string
+    default:
+    description: |
+      The IP address and netmask of the cluster (back-side) network (e.g.,
+      192.168.0.0/24)
   prefer-ipv6:
     type: boolean
     default: False
