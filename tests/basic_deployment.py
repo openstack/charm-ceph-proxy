@@ -17,9 +17,10 @@ u = OpenStackAmuletUtils(ERROR)
 class CephBasicDeployment(OpenStackAmuletDeployment):
     """Amulet tests on a basic ceph deployment."""
 
-    def __init__(self, series=None, openstack=None, source=None):
+    def __init__(self, series=None, openstack=None, source=None, stable=False):
         """Deploy the entire test environment."""
-        super(CephBasicDeployment, self).__init__(series, openstack, source)
+        super(CephBasicDeployment, self).__init__(series, openstack, source,
+                                                  stable)
         self._add_services()
         self._add_relations()
         self._configure_services()
@@ -29,14 +30,15 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
     def _add_services(self):
         """Add services
 
-           Add the services that we're testing, including the number of units,
-           where ceph is local, and mysql and cinder are from the charm
-           store.
+           Add the services that we're testing, where ceph is local,
+           and the rest of the service are from lp branches that are
+           compatible with the local charm (e.g. stable or next).
            """
-        this_service = ('ceph', 3)
-        other_services = [('mysql', 1), ('keystone', 1),
-                          ('rabbitmq-server', 1), ('nova-compute', 1),
-                          ('glance', 1), ('cinder', 1)]
+        this_service = {'name': 'ceph', 'units': 3}
+        other_services = [{'name': 'mysql'}, {'name': 'keystone'},
+                          {'name': 'rabbitmq-server'},
+                          {'name': 'nova-compute'},
+                          {'name': 'glance'}, {'name': 'cinder'}]
         super(CephBasicDeployment, self)._add_services(this_service,
                                                        other_services)
 
