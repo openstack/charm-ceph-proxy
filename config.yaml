@@ -154,4 +154,10 @@ options:
       NOTE: these charms do not currently support IPv6 privacy extension. In
       order for this charm to function correctly, the privacy extension must be
       disabled and a non-temporary address must be configured/available on
-      your network interface.
+      your network interface.	
+  sysctl:
+    type: string
+    default: ""
+    description: |
+      YAML formatted associative array of sysctl values, e.g.:
+      '{ kernel.pid_max : 4194303 }'

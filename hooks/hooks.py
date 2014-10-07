@@ -45,6 +45,8 @@ from charmhelpers.contrib.network.ip import (
     format_ipv6_addr
 )
 
+from charmhelpers.core.sysctl import create as create_sysctl
+
 from utils import (
     render_template,
     get_public_addr,
@@ -118,6 +120,10 @@ def config_changed():
     if config('osd-format') not in ceph.DISK_FORMATS:
         log('Invalid OSD disk format configuration specified', level=ERROR)
         sys.exit(1)
+
+    sysctl_dict = config('sysctl')
+    if sysctl_dict:
+        create_sysctl(sysctl_dict, '/etc/sysctl.d/50-ceph-charm.conf')
 
     emit_cephconf()
 
