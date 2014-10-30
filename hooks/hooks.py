@@ -23,13 +23,16 @@ from charmhelpers.core.hookenv import (
     relation_set,
     remote_unit,
     Hooks, UnregisteredHookError,
-    service_name
+    service_name,
+    relations_of_type
 )
 
 from charmhelpers.core.host import (
     service_restart,
     umount,
     mkdir,
+    write_file,
+    rsync,
     cmp_pkgrevno
 )
 from charmhelpers.fetch import (
@@ -51,7 +54,14 @@ from utils import (
     assert_charm_supports_ipv6
 )
 
+from charmhelpers.contrib.charmsupport.nrpe import NRPE
+
 hooks = Hooks()
+
+NAGIOS_PLUGINS = '/usr/local/lib/nagios/plugins'
+SCRIPTS_DIR = '/usr/local/bin'
+STATUS_FILE = '/var/lib/nagios/cat-ceph-status.txt'
+STATUS_CRONFILE = '/etc/cron.d/cat-ceph-health'
 
 
 def install_upstart_scripts():
@@ -142,6 +152,9 @@ def config_changed():
             ceph.osdize(dev, config('osd-format'), config('osd-journal'),
                         reformat_osd(), config('ignore-device-errors'))
         ceph.start_osds(get_devices())
+
+    if relations_of_type('nrpe-external-master'):
+        update_nrpe_config()
 
 
 def get_mon_hosts():
@@ -305,6 +318,37 @@ def start():
     service_restart('ceph-mon-all')
     if ceph.is_bootstrapped():
         ceph.start_osds(get_devices())
+
+
+@hooks.hook('nrpe-external-master-relation-joined')
+@hooks.hook('nrpe-external-master-relation-changed')
+def update_nrpe_config():
+    log('Refreshing nagios checks')
+    if os.path.isdir(NAGIOS_PLUGINS):
+        rsync(os.path.join(os.getenv('CHARM_DIR'), 'files', 'nagios',
+                           'check_ceph_status.py'),
+              os.path.join(NAGIOS_PLUGINS, 'check_ceph_status.py'))
+
+    script = os.path.join(SCRIPTS_DIR, 'collect_ceph_status.sh')
+    rsync(os.path.join(os.getenv('CHARM_DIR'), 'files',
+                       'nagios', 'collect_ceph_status.sh'),
+          script)
+    cronjob = "{} root {}\n".format('*/5 * * * *', script)
+    write_file(STATUS_CRONFILE, cronjob)
+
+    # Find out if nrpe set nagios_hostname
+    hostname = None
+    for rel in relations_of_type('nrpe-external-master'):
+        if 'nagios_hostname' in rel:
+            hostname = rel['nagios_hostname']
+            break
+    nrpe = NRPE(hostname=hostname)
+    nrpe.add_check(
+        shortname="ceph",
+        description='Check Ceph health',
+        check_cmd='check_ceph_status.py -f {}'.format(STATUS_FILE)
+    )
+    nrpe.write()
 
 
 if __name__ == '__main__':
