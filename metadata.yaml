@@ -10,6 +10,9 @@ peers:
   mon:
     interface: ceph
 provides:
+  nrpe-external-master:
+    interface: nrpe-external-master
+    scope: container
   client:
     interface: ceph-client
   osd:
