@@ -22,6 +22,7 @@ from charmhelpers.core.hookenv import (
     relation_get,
     relation_set,
     remote_unit,
+    local_unit,
     Hooks, UnregisteredHookError,
     service_name,
     relations_of_type
@@ -341,11 +342,15 @@ def update_nrpe_config():
     for rel in relations_of_type('nrpe-external-master'):
         if 'nagios_hostname' in rel:
             hostname = rel['nagios_hostname']
+            host_context = rel['nagios_host_context']
             break
     nrpe = NRPE(hostname=hostname)
+
+    current_unit = "%s:%s" % (host_context, local_unit())
+
     nrpe.add_check(
         shortname="ceph",
-        description='Check Ceph health',
+        description='Check Ceph health {%s}' % current_unit,
         check_cmd='check_ceph_status.py -f {}'.format(STATUS_FILE)
     )
     nrpe.write()
