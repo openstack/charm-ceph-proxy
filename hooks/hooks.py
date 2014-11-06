@@ -339,6 +339,7 @@ def update_nrpe_config():
 
     # Find out if nrpe set nagios_hostname
     hostname = None
+    host_context = None
     for rel in relations_of_type('nrpe-external-master'):
         if 'nagios_hostname' in rel:
             hostname = rel['nagios_hostname']
@@ -346,7 +347,10 @@ def update_nrpe_config():
             break
     nrpe = NRPE(hostname=hostname)
 
-    current_unit = "%s:%s" % (host_context, local_unit())
+    if host_context:
+        current_unit = "%s:%s" % (host_context, local_unit())
+    else:
+        current_unit = local_unit()
 
     nrpe.add_check(
         shortname="ceph",
