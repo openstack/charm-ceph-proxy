@@ -9,8 +9,7 @@ from charmhelpers.core.hookenv import (
 )
 from charmhelpers.contrib.storage.linux.ceph import (
     create_pool,
-    pool_exists,
-    ensure_ceph_keyring
+    pool_exists
 )
 
 
@@ -35,13 +34,5 @@ def process_requests(reqs):
                 create_pool(service=svc, name=pool, replicas=replicas)
             else:
                 log("Pool '%s' already exists" % (pool), level=INFO)
-        elif op == "create_keyring":
-            user = req.get('user')
-            group = req.get('group')
-            if not all([user, group]):
-                log("Missing parameter(s)", level=ERROR)
-                return 1
-
-            ensure_ceph_keyring(service=svc, user=user, group=group)
 
     return 0
