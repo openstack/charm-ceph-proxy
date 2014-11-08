@@ -23,12 +23,17 @@ def process_requests(reqs):
         # setup to use them for these operations.
         svc = 'admin'
         if op == "create_pool":
-            pool = req.get('name')
-            replicas = req.get('replicas')
-            if not all([pool, replicas]):
-                log("Missing parameter(s)", level=ERROR)
+            params = {'pool': req.get('name'),
+                      'replicas': req.get('replicas')}
+            if not all(params.iteritems()):
+                log("Missing parameter(s): %s" %
+                    (' '.join([k for k in params.iterkeys()
+                               if not params[k]])),
+                    level=ERROR)
                 return 1
 
+            pool = params['pool']
+            replicas = params['replicas']
             if not pool_exists(service=svc, name=pool):
                 log("Creating pool '%s' (replicas=%s)" % (pool, replicas),
                     level=INFO)
