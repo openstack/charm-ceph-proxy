@@ -296,17 +296,18 @@ def client_relation_joined(relid=None):
 
 @hooks.hook('client-relation-changed')
 def client_relation_changed(relid=None):
-    if ceph.is_quorum():
-        resp = None
+    """Process broker requests from ceph client relations."""
+    if ceph.is_quorum() and ceph.is_leader():
         settings = relation_get(rid=relid)
         if 'broker_req' in settings:
             req = settings['broker_req']
-            log("Broker request received")
-            resp = process_requests(json.loads(req))
-
-            if resp is not None:
-                relation_set(relation_id=relid,
-                             relation_settings={'broker_rsp': resp})
+            log("Broker request received from ceph client")
+            exit_code = process_requests(json.loads(req))
+            # Construct JSON response dict allowing other data to be added as
+            # and when we need it.
+            resp = json.dumps({'exit_code': exit_code})
+            relation_set(relation_id=relid,
+                         relation_settings={'broker_rsp': resp})
     else:
         log('mon cluster not in quorum')
 
