@@ -9,14 +9,15 @@
 #
 
 import glob
-import json
 import os
 import shutil
 import sys
 
 import ceph
 from charmhelpers.core.hookenv import (
-    log, ERROR,
+    log,
+    INFO,
+    ERROR,
     config,
     relation_ids,
     related_units,
@@ -26,7 +27,6 @@ from charmhelpers.core.hookenv import (
     Hooks, UnregisteredHookError,
     service_name
 )
-
 from charmhelpers.core.host import (
     service_restart,
     umount,
@@ -45,7 +45,6 @@ from charmhelpers.contrib.network.ip import (
     get_ipv6_addr,
     format_ipv6_addr
 )
-
 from utils import (
     render_template,
     get_public_addr,
@@ -297,17 +296,17 @@ def client_relation_joined(relid=None):
 @hooks.hook('client-relation-changed')
 def client_relation_changed(relid=None):
     """Process broker requests from ceph client relations."""
-    if ceph.is_quorum() and ceph.is_leader():
+    if ceph.is_quorum():
         settings = relation_get(rid=relid)
         if 'broker_req' in settings:
-            req = settings['broker_req']
-            log("Broker request received from ceph client")
-            exit_code = process_requests(json.loads(req))
-            # Construct JSON response dict allowing other data to be added as
-            # and when we need it.
-            resp = json.dumps({'exit_code': exit_code})
-            relation_set(relation_id=relid,
-                         relation_settings={'broker_rsp': resp})
+            if not ceph.is_leader():
+                log("Not leader - ignoring broker request", level=INFO)
+            else:
+                req = settings['broker_req']
+                log("Broker request received from ceph client")
+                rsp = process_requests(req)
+                relation_set(relation_id=relid,
+                             relation_settings={'broker_rsp': rsp})
     else:
         log('mon cluster not in quorum')
 
