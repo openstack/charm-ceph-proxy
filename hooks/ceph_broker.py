@@ -29,12 +29,12 @@ def process_requests(reqs):
     This is a versioned api. We choose the api version based on provided
     version from client.
     """
-    version = reqs.get('version')
+    version = reqs.get('api-version')
     if version == 1:
         return process_requests_v1(reqs['ops'])
 
     msg = ("Missing or invalid api version (%s)" % (version))
-    return {'exit_code': 1, 'stderr': msg}
+    return {'exit-code': 1, 'stderr': msg}
 
 
 def process_requests_v1(reqs):
@@ -53,7 +53,7 @@ def process_requests_v1(reqs):
         # Use admin client since we do not have other client key locations
         # setup to use them for these operations.
         svc = 'admin'
-        if op == "create_pool":
+        if op == "create-pool":
             params = {'pool': req.get('name'),
                       'replicas': req.get('replicas')}
             if not all(params.iteritems()):
@@ -61,7 +61,7 @@ def process_requests_v1(reqs):
                        (' '.join([k for k in params.iterkeys()
                                   if not params[k]])))
                 log(msg, level=ERROR)
-                return {'exit_code': 1, 'stderr': msg}
+                return {'exit-code': 1, 'stderr': msg}
 
             pool = params['pool']
             replicas = params['replicas']
@@ -75,6 +75,6 @@ def process_requests_v1(reqs):
         else:
             msg = "Unknown operation '%s'" % (op)
             log(msg, level=ERROR)
-            return {'exit_code': 1, 'stderr': msg}
+            return {'exit-code': 1, 'stderr': msg}
 
-    return {'exit_code': 0}
+    return {'exit-code': 0}
