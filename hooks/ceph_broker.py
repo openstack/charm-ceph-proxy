@@ -29,9 +29,16 @@ def process_requests(reqs):
     This is a versioned api. We choose the api version based on provided
     version from client.
     """
-    version = reqs.get('api-version')
-    if version == 1:
-        return process_requests_v1(reqs['ops'])
+    try:
+        version = reqs.get('api-version')
+        if version == 1:
+            return process_requests_v1(reqs['ops'])
+    except Exception as exc:
+        log(str(exc), level=ERROR)
+        msg = ("Unexpected error occurred while processing requests: %s" %
+               (reqs))
+        log(msg, level=ERROR)
+        return {'exit-code': 1, 'stderr': msg}
 
     msg = ("Missing or invalid api version (%s)" % (version))
     return {'exit-code': 1, 'stderr': msg}
