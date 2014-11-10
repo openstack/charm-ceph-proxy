@@ -24,10 +24,10 @@ def decode(f):
 
 @decode
 def process_requests(reqs):
-    """Process a Ceph broker request from a ceph client.
+    """Process Ceph broker request(s).
 
-    This is a versioned api. We choose the api version based on provided
-    version from client.
+    This is a versioned api. API version must be supplied by the client making
+    the request.
     """
     try:
         version = reqs.get('api-version')
@@ -45,13 +45,13 @@ def process_requests(reqs):
 
 
 def process_requests_v1(reqs):
-    """Process a v1 requests from a ceph client.
+    """Process v1 requests.
 
-    Takes a list of requests (dicts) and processes each one until it hits an
-    error.
+    Takes a list of requests (dicts) and processes each one. If an error is
+    found, processing stops and the client is notified in the response.
 
-    Upon completion of all ops or if an error is found, a response dict is
-    returned containing exit code and any extra info.
+    Returns a response dict containing the exit code (non-zero if any
+    operation failed along with an explanation).
     """
     log("Processing %s ceph broker requests" % (len(reqs)), level=INFO)
     for req in reqs:
