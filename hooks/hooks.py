@@ -16,7 +16,7 @@ import sys
 import ceph
 from charmhelpers.core.hookenv import (
     log,
-    INFO,
+    DEBUG,
     ERROR,
     config,
     relation_ids,
@@ -300,15 +300,13 @@ def client_relation_changed(relid=None):
         settings = relation_get(rid=relid)
         if 'broker_req' in settings:
             if not ceph.is_leader():
-                log("Not leader - ignoring broker request", level=INFO)
+                log("Not leader - ignoring broker request", level=DEBUG)
             else:
-                req = settings['broker_req']
-                log("Broker request received from ceph client")
-                rsp = process_requests(req)
+                rsp = process_requests(settings['broker_req'])
                 relation_set(relation_id=relid,
                              relation_settings={'broker_rsp': rsp})
     else:
-        log('mon cluster not in quorum')
+        log('mon cluster not in quorum', level=DEBUG)
 
 
 @hooks.hook('upgrade-charm')

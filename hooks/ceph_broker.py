@@ -6,23 +6,25 @@ import json
 
 from charmhelpers.core.hookenv import (
     log,
+    DEBUG,
     INFO,
-    ERROR
+    ERROR,
 )
 from charmhelpers.contrib.storage.linux.ceph import (
     create_pool,
-    pool_exists
+    pool_exists,
 )
 
 
-def decode(f):
+def decode_req_encode_rsp(f):
+    """Decorator to decode incoming requests and encode responses."""
     def decode_inner(req):
         return json.dumps(f(json.loads(req)))
 
     return decode_inner
 
 
-@decode
+@decode_req_encode_rsp
 def process_requests(reqs):
     """Process Ceph broker request(s).
 
@@ -33,6 +35,7 @@ def process_requests(reqs):
         version = reqs.get('api-version')
         if version == 1:
             return process_requests_v1(reqs['ops'])
+
     except Exception as exc:
         log(str(exc), level=ERROR)
         msg = ("Unexpected error occurred while processing requests: %s" %
@@ -56,7 +59,7 @@ def process_requests_v1(reqs):
     log("Processing %s ceph broker requests" % (len(reqs)), level=INFO)
     for req in reqs:
         op = req.get('op')
-        log("Processing op='%s'" % (op), level=INFO)
+        log("Processing op='%s'" % (op), level=DEBUG)
         # Use admin client since we do not have other client key locations
         # setup to use them for these operations.
         svc = 'admin'
@@ -78,7 +81,7 @@ def process_requests_v1(reqs):
                 create_pool(service=svc, name=pool, replicas=replicas)
             else:
                 log("Pool '%s' already exists - skipping create" % (pool),
-                    level=INFO)
+                    level=DEBUG)
         else:
             msg = "Unknown operation '%s'" % (op)
             log(msg, level=ERROR)
