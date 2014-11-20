@@ -157,7 +157,7 @@ options:
       your network interface.	
   sysctl:
     type: string
-    default: ""
+    default:
     description: |
       YAML formatted associative array of sysctl values, e.g.:
       '{ kernel.pid_max : 4194303 }'
