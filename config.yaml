@@ -155,3 +155,9 @@ options:
       order for this charm to function correctly, the privacy extension must be
       disabled and a non-temporary address must be configured/available on
       your network interface.
+  sysctl:
+    type: string
+    default: ''
+    description: |
+      YAML-formatted associative array of sysctl key/value pairs to be set
+      persistently e.g. '{ kernel.pid_max : 4194303 }'.
