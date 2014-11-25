@@ -223,7 +223,7 @@ class Config(dict):
         prev_keys = []
         if self._prev_dict is not None:
             prev_keys = self._prev_dict.keys()
-        return list(set(prev_keys + list(dict.keys(self))))
+        return list(set(prev_keys + dict.keys(self)))
 
     def load_previous(self, path=None):
         """Load previous copy of config from disk.

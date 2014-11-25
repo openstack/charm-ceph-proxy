@@ -7,6 +7,7 @@ from functools import partial
 from charmhelpers.core.hookenv import unit_get
 from charmhelpers.fetch import apt_install
 from charmhelpers.core.hookenv import (
+    ERROR,
     log
 )
 
@@ -175,7 +176,13 @@ def format_ipv6_addr(address):
     addresses.
     """
     if is_ipv6(address):
+<<<<<<< TREE
         return "[%s]" % address
+=======
+        address = "[%s]" % address
+    else:
+        address = None
+>>>>>>> MERGE-SOURCE
 
     return None
 

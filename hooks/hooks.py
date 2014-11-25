@@ -15,7 +15,9 @@ import sys
 
 import ceph
 from charmhelpers.core.hookenv import (
-    log, ERROR,
+    log,
+    DEBUG,
+    ERROR,
     config,
     relation_ids,
     related_units,
@@ -25,7 +27,6 @@ from charmhelpers.core.hookenv import (
     Hooks, UnregisteredHookError,
     service_name
 )
-
 from charmhelpers.core.host import (
     service_restart,
     umount,
@@ -51,6 +52,9 @@ from utils import (
     render_template,
     get_public_addr,
     assert_charm_supports_ipv6
+)
+from ceph_broker import (
+    process_requests
 )
 
 hooks = Hooks()
@@ -221,7 +225,7 @@ def notify_radosgws():
 
 def notify_client():
     for relid in relation_ids('client'):
-        client_relation(relid)
+        client_relation_joined(relid)
 
 
 def upgrade_keys():
@@ -272,26 +276,44 @@ def radosgw_relation(relid=None):
 
 
 @hooks.hook('client-relation-joined')
-def client_relation(relid=None):
+def client_relation_joined(relid=None):
     if ceph.is_quorum():
         log('mon cluster in quorum - providing client with keys')
         service_name = None
         if relid is None:
-            service_name = remote_unit().split('/')[0]
+            units = [remote_unit()]
+            service_name = units[0].split('/')[0]
         else:
             units = related_units(relid)
             if len(units) > 0:
                 service_name = units[0].split('/')[0]
+
         if service_name is not None:
-            data = {
-                'key': ceph.get_named_key(service_name),
-                'auth': config('auth-supported'),
-                'ceph-public-address': get_public_addr(),
-            }
+            data = {'key': ceph.get_named_key(service_name),
+                    'auth': config('auth-supported'),
+                    'ceph-public-address': get_public_addr()}
             relation_set(relation_id=relid,
                          relation_settings=data)
+
+        client_relation_changed(relid=relid)
     else:
         log('mon cluster not in quorum - deferring key provision')
+
+
+@hooks.hook('client-relation-changed')
+def client_relation_changed(relid=None):
+    """Process broker requests from ceph client relations."""
+    if ceph.is_quorum():
+        settings = relation_get(rid=relid)
+        if 'broker_req' in settings:
+            if not ceph.is_leader():
+                log("Not leader - ignoring broker request", level=DEBUG)
+            else:
+                rsp = process_requests(settings['broker_req'])
+                relation_set(relation_id=relid,
+                             relation_settings={'broker_rsp': rsp})
+    else:
+        log('mon cluster not in quorum', level=DEBUG)
 
 
 @hooks.hook('upgrade-charm')
