@@ -7,40 +7,34 @@ from charmhelpers.core.host import mkdir
 
 import six
 if six.PY3:
-    raise ImportError('bzrlib does not support Python3')
+    raise ImportError('GitPython does not support Python 3')
 
 try:
-    from bzrlib.branch import Branch
+    from git import Repo
 except ImportError:
     from charmhelpers.fetch import apt_install
-    apt_install("python-bzrlib")
-    from bzrlib.branch import Branch
+    apt_install("python-git")
+    from git import Repo
 
 
-class BzrUrlFetchHandler(BaseFetchHandler):
-    """Handler for bazaar branches via generic and lp URLs"""
+class GitUrlFetchHandler(BaseFetchHandler):
+    """Handler for git branches via generic and github URLs"""
     def can_handle(self, source):
         url_parts = self.parse_url(source)
-        if url_parts.scheme not in ('bzr+ssh', 'lp'):
+        # TODO (mattyw) no support for ssh git@ yet
+        if url_parts.scheme not in ('http', 'https', 'git'):
             return False
         else:
             return True
 
-    def branch(self, source, dest):
-        url_parts = self.parse_url(source)
-        # If we use lp:branchname scheme we need to load plugins
+    def clone(self, source, dest, branch):
         if not self.can_handle(source):
             raise UnhandledSource("Cannot handle {}".format(source))
-        if url_parts.scheme == "lp":
-            from bzrlib.plugin import load_plugins
-            load_plugins()
-        try:
-            remote_branch = Branch.open(source)
-            remote_branch.bzrdir.sprout(dest).open_branch()
-        except Exception as e:
-            raise e
 
-    def install(self, source):
+        repo = Repo.clone_from(source, dest)
+        repo.git.checkout(branch)
+
+    def install(self, source, branch="master"):
         url_parts = self.parse_url(source)
         branch_name = url_parts.path.strip("/").split("/")[-1]
         dest_dir = os.path.join(os.environ.get('CHARM_DIR'), "fetched",
@@ -48,7 +42,7 @@ class BzrUrlFetchHandler(BaseFetchHandler):
         if not os.path.exists(dest_dir):
             mkdir(dest_dir, perms=0o755)
         try:
-            self.branch(source, dest_dir)
+            self.clone(source, dest_dir, branch)
         except OSError as e:
             raise UnhandledSource(e.strerror)
         return dest_dir
