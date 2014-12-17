@@ -28,28 +28,12 @@ from charmhelpers.contrib.network.ip import (
     get_ipv6_addr
 )
 
-TEMPLATES_DIR = 'templates'
-
-try:
-    import jinja2
-except ImportError:
-    apt_install(filter_installed_packages(['python-jinja2']),
-                fatal=True)
-    import jinja2
-
 try:
     import dns.resolver
 except ImportError:
     apt_install(filter_installed_packages(['python-dnspython']),
                 fatal=True)
     import dns.resolver
-
-
-def render_template(template_name, context, template_dir=TEMPLATES_DIR):
-    templates = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(template_dir))
-    template = templates.get_template(template_name)
-    return template.render(context)
 
 
 def enable_pocket(pocket):
