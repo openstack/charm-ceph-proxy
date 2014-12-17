@@ -46,9 +46,9 @@ from charmhelpers.contrib.network.ip import (
     format_ipv6_addr
 )
 from charmhelpers.core.sysctl import create as create_sysctl
+from charmhelpers.core.templating import render
 
 from utils import (
-    render_template,
     get_public_addr,
     assert_charm_supports_ipv6
 )
@@ -98,8 +98,7 @@ def emit_cephconf():
     # co-existence with other charms that write this file
     charm_ceph_conf = "/var/lib/charm/{}/ceph.conf".format(service_name())
     mkdir(os.path.dirname(charm_ceph_conf))
-    with open(charm_ceph_conf, 'w') as cephconf:
-        cephconf.write(render_template('ceph.conf', cephcontext))
+    render('ceph.conf', charm_ceph_conf, cephcontext, perms=0o644)
     install_alternative('ceph.conf', '/etc/ceph/ceph.conf',
                         charm_ceph_conf, 100)
 
