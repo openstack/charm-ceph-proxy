@@ -163,6 +163,7 @@ options:
       persistently e.g. '{ kernel.pid_max : 4194303 }'.
   nagios_context:
     default: "juju"
+    description: |
       Used by the nrpe-external-master subordinate charm.
       A string that will be prepended to instance name to set the host name
       in nagios. So for instance the hostname would be something like:
