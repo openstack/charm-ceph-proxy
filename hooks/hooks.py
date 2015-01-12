@@ -303,12 +303,17 @@ def client_relation_joined(relid=None):
 def client_relation_changed(relid=None):
     """Process broker requests from ceph client relations."""
     if ceph.is_quorum():
-        settings = relation_get(rid=relid)
-        if 'broker_req' in settings:
+        broker_req = None
+        for unit in related_units(relid):
+            # relation_get('ceph-public-address', unit, relid)
+            settings = relation_get(unit=unit, rid=relid)
+            if 'broker_req' in settings:
+                broker_req = settings['broker_req']
+        if broker_req:
             if not ceph.is_leader():
                 log("Not leader - ignoring broker request", level=DEBUG)
             else:
-                rsp = process_requests(settings['broker_req'])
+                rsp = process_requests(broker_req)
                 relation_set(relation_id=relid,
                              relation_settings={'broker_rsp': rsp})
     else:
