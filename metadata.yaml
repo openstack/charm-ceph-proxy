@@ -10,9 +10,16 @@ peers:
   mon:
     interface: ceph
 provides:
+  nrpe-external-master:
+    interface: nrpe-external-master
+    scope: container
   client:
     interface: ceph-client
   osd:
     interface: ceph-osd
   radosgw:
     interface: ceph-radosgw
+  nrpe-external-master:
+    interface: nrpe-external-master
+    scope: container
+    gets: [nagios_hostname, nagios_host_context]
