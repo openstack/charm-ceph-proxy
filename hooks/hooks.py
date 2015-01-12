@@ -293,27 +293,20 @@ def client_relation_joined(relid=None):
                     'ceph-public-address': get_public_addr()}
             relation_set(relation_id=relid,
                          relation_settings=data)
-
-        client_relation_changed(relid=relid)
     else:
         log('mon cluster not in quorum - deferring key provision')
 
 
 @hooks.hook('client-relation-changed')
-def client_relation_changed(relid=None):
+def client_relation_changed():
     """Process broker requests from ceph client relations."""
     if ceph.is_quorum():
-        broker_req = None
-        for unit in related_units(relid):
-            # relation_get('ceph-public-address', unit, relid)
-            settings = relation_get(unit=unit, rid=relid)
-            if 'broker_req' in settings:
-                broker_req = settings['broker_req']
-        if broker_req:
+        settings = relation_get(rid=relid)
+        if 'broker_req' in settings:
             if not ceph.is_leader():
                 log("Not leader - ignoring broker request", level=DEBUG)
             else:
-                rsp = process_requests(broker_req)
+                rsp = process_requests(settings['broker_req'])
                 relation_set(relation_id=relid,
                              relation_settings={'broker_rsp': rsp})
     else:
