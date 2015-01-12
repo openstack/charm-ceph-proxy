@@ -24,7 +24,6 @@ from charmhelpers.core.hookenv import (
     relation_get,
     relation_set,
     remote_unit,
-    local_unit,
     Hooks, UnregisteredHookError,
     service_name,
     relations_of_type
@@ -60,7 +59,7 @@ from ceph_broker import (
     process_requests
 )
 
-from charmhelpers.contrib.charmsupport.nrpe import NRPE
+from charmhelpers.contrib.charmsupport import nrpe
 
 hooks = Hooks()
 
@@ -351,6 +350,8 @@ def start():
 @hooks.hook('nrpe-external-master-relation-joined')
 @hooks.hook('nrpe-external-master-relation-changed')
 def update_nrpe_config():
+    # python-dbus is used by check_upstart_job
+    apt_install('python-dbus')
     log('Refreshing nagios checks')
     if os.path.isdir(NAGIOS_PLUGINS):
         rsync(os.path.join(os.getenv('CHARM_DIR'), 'files', 'nagios',
@@ -365,26 +366,15 @@ def update_nrpe_config():
     write_file(STATUS_CRONFILE, cronjob)
 
     # Find out if nrpe set nagios_hostname
-    hostname = None
-    host_context = None
-    for rel in relations_of_type('nrpe-external-master'):
-        if 'nagios_hostname' in rel:
-            hostname = rel['nagios_hostname']
-            host_context = rel['nagios_host_context']
-            break
-    nrpe = NRPE(hostname=hostname)
-
-    if host_context:
-        current_unit = "%s:%s" % (host_context, local_unit())
-    else:
-        current_unit = local_unit()
-
-    nrpe.add_check(
+    hostname = nrpe.get_nagios_hostname()
+    current_unit = nrpe.get_nagios_unit_name()
+    nrpe_setup = nrpe.NRPE(hostname=hostname)
+    nrpe_setup.add_check(
         shortname="ceph",
         description='Check Ceph health {%s}' % current_unit,
         check_cmd='check_ceph_status.py -f {}'.format(STATUS_FILE)
     )
-    nrpe.write()
+    nrpe_setup.write()
 
 
 if __name__ == '__main__':
