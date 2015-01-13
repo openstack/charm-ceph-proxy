@@ -301,7 +301,7 @@ def client_relation_joined(relid=None):
 def client_relation_changed():
     """Process broker requests from ceph client relations."""
     if ceph.is_quorum():
-        settings = relation_get(rid=relid)
+        settings = relation_get()
         if 'broker_req' in settings:
             if not ceph.is_leader():
                 log("Not leader - ignoring broker request", level=DEBUG)
