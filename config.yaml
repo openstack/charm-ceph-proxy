@@ -162,7 +162,7 @@ options:
       YAML-formatted associative array of sysctl key/value pairs to be set
       persistently. As a default we set pid_max, max_map_count and 
       threads-max to a high value to avoid problems with large numbers (>20)
-      of OSDs recovering. very large clusters should set pid_max even 
+      of OSDs recovering. very large clusters should set those values even
       higher (max 4194303).
   nagios_context:
     default: "juju"
