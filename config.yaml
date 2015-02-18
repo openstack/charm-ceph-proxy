@@ -165,6 +165,7 @@ options:
       of OSDs recovering. very large clusters should set those values even
       higher (max 4194303).
   nagios_context:
+    type: string
     default: "juju"
     description: |
       Used by the nrpe-external-master subordinate charm.
