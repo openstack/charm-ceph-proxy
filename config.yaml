@@ -157,13 +157,16 @@ options:
       your network interface.
   sysctl:
     type: string
-    default: '{ kernel.pid_max : 2097152 }'
+    default: '{ kernel.pid_max : 2097152, vm.max_map_count : 524288,
+                kernel.threads-max: 2097152 }'
     description: |
       YAML-formatted associative array of sysctl key/value pairs to be set
-      persistently. As a default we set pid_max to a high value to avoid
-      problems with large numbers (>20) of OSDs recovering. very large clusters
-      should set this value even higher (max 4194303).
+      persistently. By default we set pid_max, max_map_count and 
+      threads-max to a high value to avoid problems with large numbers (>20)
+      of OSDs recovering. very large clusters should set those values even
+      higher (e.g. max for kernel.pid_max is 4194303).
   nagios_context:
+    type: string
     default: "juju"
     description: |
       Used by the nrpe-external-master subordinate charm.
