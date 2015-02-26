@@ -22,4 +22,3 @@ provides:
   nrpe-external-master:
     interface: nrpe-external-master
     scope: container
-    gets: [nagios_hostname, nagios_host_context]
