@@ -328,11 +328,14 @@ def bootstrap_monitor_cluster(secret):
 def update_monfs():
     hostname = get_unit_hostname()
     monfs = '/var/lib/ceph/mon/ceph-{}'.format(hostname)
-    upstart = '{}/upstart'.format(monfs)
-    if os.path.exists(monfs) and not os.path.exists(upstart):
+    if systemd():
+        init_marker = '{}/systemd'.format(monfs)
+    else:
+        init_marker = '{}/upstart'.format(monfs)
+    if os.path.exists(monfs) and not os.path.exists(init_marker):
         # Mark mon as managed by upstart so that
         # it gets start correctly on reboots
-        with open(upstart, 'w'):
+        with open(init_marker, 'w'):
             pass
 
 
