@@ -315,6 +315,7 @@ def bootstrap_monitor_cluster(secret):
                 pass
 
             if systemd():
+                subprocess.check_call(['systemctl', 'enable', 'ceph-mon'])
                 service_restart('ceph-mon')
             else:
                 service_restart('ceph-mon-all')
