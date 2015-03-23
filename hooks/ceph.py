@@ -15,11 +15,13 @@ from charmhelpers.core.host import (
     mkdir,
     service_restart,
     cmp_pkgrevno,
+    lsb_release
 )
 from charmhelpers.core.hookenv import (
     log,
     ERROR,
     WARNING,
+    cached
 )
 from charmhelpers.contrib.storage.linux.utils import (
     zap_disk,
@@ -274,11 +276,20 @@ def upgrade_key_caps(key, caps):
     subprocess.check_call(cmd)
 
 
+@cached
+def systemd():
+    return (lsb_release()['DISTRIB_CODENAME'] >= 'vivid')
+
+
 def bootstrap_monitor_cluster(secret):
     hostname = get_unit_hostname()
     path = '/var/lib/ceph/mon/ceph-{}'.format(hostname)
     done = '{}/done'.format(path)
-    upstart = '{}/upstart'.format(path)
+    if systemd():
+        init_marker = '{}/systemd'.format(path)
+    else:
+        init_marker = '{}/upstart'.format(path)
+
     keyring = '/var/lib/ceph/tmp/{}.mon.keyring'.format(hostname)
 
     if os.path.exists(done):
@@ -300,10 +311,13 @@ def bootstrap_monitor_cluster(secret):
 
             with open(done, 'w'):
                 pass
-            with open(upstart, 'w'):
+            with open(init_marker, 'w'):
                 pass
 
-            service_restart('ceph-mon-all')
+            if systemd():
+                service_restart('ceph-mon')
+            else:
+                service_restart('ceph-mon-all')
         except:
             raise
         finally:
