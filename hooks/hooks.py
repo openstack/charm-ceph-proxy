@@ -338,7 +338,10 @@ def upgrade_charm():
 def start():
     # In case we're being redeployed to the same machines, try
     # to make sure everything is running as soon as possible.
-    service_restart('ceph-mon-all')
+    if ceph.systemd():
+        service_restart('ceph-mon')
+    else:
+        service_restart('ceph-mon-all')
     if ceph.is_bootstrapped():
         ceph.start_osds(get_devices())
 
