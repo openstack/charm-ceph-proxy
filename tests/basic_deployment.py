@@ -1,17 +1,25 @@
 #!/usr/bin/python
 
 import amulet
+import json
+import time
 from charmhelpers.contrib.openstack.amulet.deployment import (
     OpenStackAmuletDeployment
 )
 from charmhelpers.contrib.openstack.amulet.utils import (  # noqa
     OpenStackAmuletUtils,
     DEBUG,
-    ERROR
+    #ERROR
 )
 
 # Use DEBUG to turn on debug logging
 u = OpenStackAmuletUtils(DEBUG)
+
+# Resource names and constants
+IMAGE_NAME = 'cirros-image-1'
+POOLS = ['data', 'metadata', 'rbd', 'cinder', 'glance']
+CINDER_POOL = 3
+GLANCE_POOL = 4
 
 
 class CephBasicDeployment(OpenStackAmuletDeployment):
@@ -35,10 +43,12 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
            compatible with the local charm (e.g. stable or next).
            """
         this_service = {'name': 'ceph', 'units': 3}
-        other_services = [{'name': 'mysql'}, {'name': 'keystone'},
+        other_services = [{'name': 'mysql'},
+                          {'name': 'keystone'},
                           {'name': 'rabbitmq-server'},
                           {'name': 'nova-compute'},
-                          {'name': 'glance'}, {'name': 'cinder'}]
+                          {'name': 'glance'},
+                          {'name': 'cinder'}]
         super(CephBasicDeployment, self)._add_services(this_service,
                                                        other_services)
 
@@ -74,12 +84,9 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             'fsid': '6547bd3e-1397-11e2-82e5-53567c8d32dc',
             'monitor-secret': 'AQCXrnZQwI7KGBAAiPofmKEXKxu5bUzoYLVkbQ==',
             'osd-reformat': 'yes',
-            'ephemeral-unmount': '/mnt'
+            'ephemeral-unmount': '/mnt',
+            'osd-devices': '/dev/vdb /srv/ceph'
         }
-        if self._get_openstack_release() >= self.precise_grizzly:
-            ceph_config['osd-devices'] = '/dev/vdb /srv/ceph'
-        else:
-            ceph_config['osd-devices'] = '/dev/vdb'
 
         configs = {'keystone': keystone_config,
                    'mysql': mysql_config,
@@ -88,26 +95,43 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         super(CephBasicDeployment, self)._configure_services(configs)
 
     def _initialize_tests(self):
-        """Perform final initialization before tests get run."""
+        """Perform final initialization original tests get run."""
         # Access the sentries for inspecting service units
         self.mysql_sentry = self.d.sentry.unit['mysql/0']
         self.keystone_sentry = self.d.sentry.unit['keystone/0']
         self.rabbitmq_sentry = self.d.sentry.unit['rabbitmq-server/0']
-        self.nova_compute_sentry = self.d.sentry.unit['nova-compute/0']
+        self.nova_sentry = self.d.sentry.unit['nova-compute/0']
         self.glance_sentry = self.d.sentry.unit['glance/0']
         self.cinder_sentry = self.d.sentry.unit['cinder/0']
         self.ceph0_sentry = self.d.sentry.unit['ceph/0']
         self.ceph1_sentry = self.d.sentry.unit['ceph/1']
         self.ceph2_sentry = self.d.sentry.unit['ceph/2']
+        u.log.debug('openstack release val: {}'.format(
+            self._get_openstack_release()))
+        u.log.debug('openstack release str: {}'.format(
+            self._get_openstack_release_string()))
+
+        # Let things settle a bit original moving forward
+        time.sleep(30)
 
         # Authenticate admin with keystone
         self.keystone = u.authenticate_keystone_admin(self.keystone_sentry,
                                                       user='admin',
                                                       password='openstack',
                                                       tenant='admin')
-
+        # Authenticate admin with cinder endpoint
+        self.cinder = u.authenticate_cinder_admin(self.keystone_sentry,
+                                                  username='admin',
+                                                  password='openstack',
+                                                  tenant='admin')
         # Authenticate admin with glance endpoint
         self.glance = u.authenticate_glance_admin(self.keystone)
+
+        # Authenticate admin with nova endpoint
+        self.nova = u.authenticate_nova_user(self.keystone,
+                                             user='admin',
+                                             password='openstack',
+                                             tenant='admin')
 
         # Create a demo tenant/role/user
         self.demo_tenant = 'demoTenant'
@@ -139,41 +163,83 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         """Produce a shell command that will return a ceph-osd id."""
         return "`initctl list | grep 'ceph-osd ' | awk 'NR=={} {{ print $2 }}' | grep -o '[0-9]*'`".format(index + 1)  # noqa
 
-    def test_services(self):
-        """Verify the expected services are running on the service units."""
-        ceph_services = ['status ceph-mon-all',
-                         'status ceph-mon id=`hostname`']
-        commands = {
-            self.mysql_sentry: ['status mysql'],
-            self.rabbitmq_sentry: ['sudo service rabbitmq-server status'],
-            self.nova_compute_sentry: ['status nova-compute'],
-            self.keystone_sentry: ['status keystone'],
-            self.glance_sentry: ['status glance-registry',
-                                 'status glance-api'],
-            self.cinder_sentry: ['status cinder-api',
-                                 'status cinder-scheduler',
-                                 'status cinder-volume']
-        }
-        if self._get_openstack_release() >= self.precise_grizzly:
-            ceph_osd0 = 'status ceph-osd id={}'.format(self._ceph_osd_id(0))
-            ceph_osd1 = 'status ceph-osd id={}'.format(self._ceph_osd_id(1))
-            ceph_services.extend([ceph_osd0, ceph_osd1, 'status ceph-osd-all'])
-            commands[self.ceph0_sentry] = ceph_services
-            commands[self.ceph1_sentry] = ceph_services
-            commands[self.ceph2_sentry] = ceph_services
-        else:
-            ceph_osd0 = 'status ceph-osd id={}'.format(self._ceph_osd_id(0))
-            ceph_services.append(ceph_osd0)
-            commands[self.ceph0_sentry] = ceph_services
-            commands[self.ceph1_sentry] = ceph_services
-            commands[self.ceph2_sentry] = ceph_services
+    def _ceph_df(self, sentry_unit):
+        """Return dict of ceph df json output"""
+        cmd = 'sudo ceph df --format=json'
+        output, code = sentry_unit.run(cmd)
+        if code != 0:
+            msg = ('{} `{}` returned {} '
+                   '{}'.format(sentry_unit.info['unit_name'],
+                               cmd, code, output))
+            u.log.debug(msg)
+            amulet.raise_status(amulet.FAIL, msg=msg)
 
-        ret = u.validate_services(commands)
+        df = json.loads(output)
+        return df
+
+    def _take_ceph_pool_sample(self, sentry_unit, pool_id=0):
+        """Return ceph pool name, object count and disk space used
+        for the specified pool ID number."""
+        df = self._ceph_df(sentry_unit)
+        pool_name = df['pools'][pool_id]['name']
+        obj_count = df['pools'][pool_id]['stats']['objects']
+        kb_used = df['pools'][pool_id]['stats']['kb_used']
+        u.log.debug('Ceph {} pool (ID {}): {} objects, '
+                    '{} kb used'.format(_pool_name,
+                                        pool_id,
+                                        obj_count,
+                                        kb_used))
+        return pool_name, obj_count, kb_used
+
+    def _validate_pool_samples(self, samples, resource_type="item",
+                               sample_type="resource pool"):
+        """Validate ceph pool samples taken over time, such as pool
+        object counts or pool kb used, before adding, after adding, and
+        after deleting items which affect those pool attributes."""
+        original, created, deleted = range(3)
+
+        if samples[created] <= samples[original] or \
+                samples[deleted] >= samples[created]:
+            msg = ('Ceph {} samples ({}) '
+                   'unexpected.'.format(sample_type, samples))
+            return msg
+        else:
+            u.log.debug('Ceph {} samples (OK): '
+                        '{}'.format(sample_type, samples))
+            return None
+
+    def test_100_services(self):
+        """Verify the expected services are running on the service units."""
+        ceph_services = [
+            'ceph-mon-all',
+            'ceph-mon id=`hostname`',
+            'ceph-osd-all',
+            'ceph-osd id={}'.format(self._ceph_osd_id(0)),
+            'ceph-osd id={}'.format(self._ceph_osd_id(1))
+        ]
+
+        services = {
+            self.mysql_sentry: ['mysql'],
+            self.rabbitmq_sentry: ['rabbitmq-server'],
+            self.nova_sentry: ['nova-compute'],
+            self.keystone_sentry: ['keystone'],
+            self.glance_sentry: ['glance-registry',
+                                 'glance-api'],
+            self.cinder_sentry: ['cinder-api',
+                                 'cinder-scheduler',
+                                 'cinder-volume'],
+            self.ceph0_sentry: ceph_services,
+            self.ceph1_sentry: ceph_services,
+            self.ceph2_sentry: ceph_services
+        }
+
+        ret = u.validate_services_by_name(services)
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
-    def test_ceph_nova_client_relation(self):
+    def test_200_ceph_nova_client_relation(self):
         """Verify the ceph to nova ceph-client relation data."""
+        u.log.debug('Checking ceph:nova-compute ceph relation data...')
         unit = self.ceph0_sentry
         relation = ['client', 'nova-compute:ceph']
         expected = {
@@ -187,9 +253,10 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('ceph to nova ceph-client', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_nova_ceph_client_relation(self):
-        """Verify the nova to ceph ceph-client relation data."""
-        unit = self.nova_compute_sentry
+    def test_201_nova_ceph_client_relation(self):
+        """Verify the nova to ceph client relation data."""
+        u.log.debug('Checking nova-compute:ceph ceph-client relation data...')
+        unit = self.nova_sentry
         relation = ['ceph', 'ceph:client']
         expected = {
             'private-address': u.valid_ip
@@ -200,8 +267,9 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('nova to ceph ceph-client', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_ceph_glance_client_relation(self):
+    def test_202_ceph_glance_client_relation(self):
         """Verify the ceph to glance ceph-client relation data."""
+        u.log.debug('Checking ceph:glance client relation data...')
         unit = self.ceph1_sentry
         relation = ['client', 'glance:ceph']
         expected = {
@@ -215,8 +283,9 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('ceph to glance ceph-client', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_glance_ceph_client_relation(self):
-        """Verify the glance to ceph ceph-client relation data."""
+    def test_203_glance_ceph_client_relation(self):
+        """Verify the glance to ceph client relation data."""
+        u.log.debug('Checking glance:ceph client relation data...')
         unit = self.glance_sentry
         relation = ['ceph', 'ceph:client']
         expected = {
@@ -228,8 +297,9 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('glance to ceph ceph-client', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_ceph_cinder_client_relation(self):
+    def test_204_ceph_cinder_client_relation(self):
         """Verify the ceph to cinder ceph-client relation data."""
+        u.log.debug('Checking ceph:cinder ceph relation data...')
         unit = self.ceph2_sentry
         relation = ['client', 'cinder:ceph']
         expected = {
@@ -243,8 +313,9 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('ceph to cinder ceph-client', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_cinder_ceph_client_relation(self):
+    def test_205_cinder_ceph_client_relation(self):
         """Verify the cinder to ceph ceph-client relation data."""
+        u.log.debug('Checking cinder:ceph ceph relation data...')
         unit = self.cinder_sentry
         relation = ['ceph', 'ceph:client']
         expected = {
@@ -256,8 +327,9 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             message = u.relation_error('cinder to ceph ceph-client', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_ceph_config(self):
+    def test_300_ceph_config(self):
         """Verify the data in the ceph config file."""
+        u.log.debug('Checking ceph config file data...')
         unit = self.ceph0_sentry
         conf = '/etc/ceph/ceph.conf'
         expected = {
@@ -267,7 +339,10 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
                 'log to syslog': 'false',
                 'err to syslog': 'false',
                 'clog to syslog': 'false',
-                'mon cluster log to syslog': 'false'
+                'mon cluster log to syslog': 'false',
+                'auth cluster required': 'none',
+                'auth service required': 'none',
+                'auth client required': 'none'
             },
             'mon': {
                 'keyring': '/var/lib/ceph/mon/$cluster-$id/keyring'
@@ -281,12 +356,6 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
                 'filestore xattr use omap': 'true'
             },
         }
-        if self._get_openstack_release() >= self.precise_grizzly:
-            expected['global']['auth cluster required'] = 'none'
-            expected['global']['auth service required'] = 'none'
-            expected['global']['auth client required'] = 'none'
-        else:
-            expected['global']['auth supported'] = 'none'
 
         for section, pairs in expected.iteritems():
             ret = u.validate_config_data(unit, conf, section, pairs)
@@ -294,11 +363,242 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
                 message = "ceph config error: {}".format(ret)
                 amulet.raise_status(amulet.FAIL, msg=message)
 
-    def test_restart_on_config_change(self):
-        """Verify the specified services are restarted on config change."""
-        # NOTE(coreycb): Test not implemented but should it be? ceph services
-        #                aren't restarted by charm after config change.  Should
-        #                they be restarted?
-        if self._get_openstack_release() >= self.precise_essex:
-            u.log.error("Test not implemented")
-            return
+    def test_302_cinder_rbd_config(self):
+        """Verify the cinder config file data regarding ceph."""
+        u.log.debug('Checking cinder (rbd) config file data...')
+        unit = self.cinder_sentry
+        conf = '/etc/cinder/cinder.conf'
+        expected = {
+            'DEFAULT': {
+                'volume_driver': 'cinder.volume.drivers.rbd.RBDDriver'
+            }
+        }
+        for section, pairs in expected.iteritems():
+            ret = u.validate_config_data(unit, conf, section, pairs)
+            if ret:
+                message = "cinder (rbd) config error: {}".format(ret)
+                amulet.raise_status(amulet.FAIL, msg=message)
+
+    def test_304_glance_rbd_config(self):
+        """Verify the glance config file data regarding ceph."""
+        u.log.debug('Checking glance (rbd) config file data...')
+        unit = self.glance_sentry
+        conf = '/etc/glance/glance-api.conf'
+        expected = {
+            'DEFAULT': {
+                'default_store': 'rbd',
+                'rbd_store_ceph_conf': '/etc/ceph/ceph.conf',
+                'rbd_store_user': 'glance',
+                'rbd_store_pool': 'glance',
+                'rbd_store_chunk_size': '8'
+            }
+        }
+        for section, pairs in expected.iteritems():
+            ret = u.validate_config_data(unit, conf, section, pairs)
+            if ret:
+                message = "glance (rbd) config error: {}".format(ret)
+                amulet.raise_status(amulet.FAIL, msg=message)
+
+    def test_306_nova_rbd_config(self):
+        """Verify the nova config file data regarding ceph."""
+        u.log.debug('Checking nova (rbd) config file data...')
+        unit = self.nova_sentry
+        conf = '/etc/nova/nova.conf'
+        expected = {
+            'libvirt': {
+                'rbd_pool': 'nova',
+                'rbd_user': 'nova-compute',
+                'rbd_secret_uuid': u.not_null
+            }
+        }
+        for section, pairs in expected.iteritems():
+            ret = u.validate_config_data(unit, conf, section, pairs)
+            if ret:
+                message = "nova (rbd) config error: {}".format(ret)
+                amulet.raise_status(amulet.FAIL, msg=message)
+
+    def test_400_ceph_check_osd_pools(self):
+        """Check osd pools on all ceph units, expect them to be
+        identical, and expect specific pools to be present."""
+        u.log.debug('Checking pools on ceph units...')
+
+        cmd = 'sudo ceph osd lspools'
+        results = []
+        sentries = [
+            self.ceph0_sentry,
+            self.ceph1_sentry,
+            self.ceph2_sentry
+        ]
+
+        for sentry_unit in sentries:
+            output, code = sentry_unit.run(cmd)
+            results.append(output)
+            msg = ('{} `{}` returned {} '
+                   '{}'.format(sentry_unit.info['unit_name'],
+                               cmd, code, output))
+            u.log.debug(msg)
+            if code != 0:
+                amulet.raise_status(amulet.FAIL, msg=msg)
+
+            # Check for presence of all pools on this unit
+            for pool in POOLS:
+                if pool not in output:
+                    msg = ('{} does not have pool: '
+                           '{}'.format(sentry_unit.info['unit_name'], pool))
+                    amulet.raise_status(amulet.FAIL, msg=msg)
+            u.log.debug('{} has the expected '
+                        'pools.'.format(sentry_unit.info['unit_name']))
+
+        # Check that lspool produces the same output on all units
+        if len(set(results)) == 1:
+            u.log.debug('Pool list on all ceph units produced the '
+                        'same results (OK).')
+        else:
+            u.log.debug('Pool list results: {}'.format(results))
+            msg = 'Pool list results are not identical on all ceph units.'
+            amulet.raise_status(amulet.FAIL, msg=msg)
+
+    def test_410_ceph_cinder_vol_create(self):
+        """Create and confirm a ceph-backed cinder volume, and inspect
+        ceph cinder pool object count as the volume is created
+        and deleted."""
+        sentry_unit = self.ceph0_sentry
+        obj_count_samples = []
+        pool_size_samples = []
+
+        # Check ceph cinder pool object count, disk space usage and pool name
+        u.log.debug('Checking ceph cinder pool original samples...')
+        pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
+            sentry_unit, pool_id=CINDER_POOL)
+        obj_count_samples.append(obj_count)
+        pool_size_samples.append(kb_used)
+
+        expected = 'cinder'
+        if pool_name != expected:
+            msg = ('Ceph pool {} unexpected name (actual, expected): '
+                   '{}. {}'.format(CINDER_POOL, pool_name, expected))
+            amulet.raise_status(amulet.FAIL, msg=msg)
+
+        # Create ceph-backed cinder volume
+        cinder_vol = u.create_cinder_volume(self.cinder)
+
+        # Re-check ceph cinder pool object count and disk usage
+        time.sleep(10)
+        u.log.debug('Checking ceph cinder pool samples after volume create...')
+        pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
+            sentry_unit, pool_id=CINDER_POOL)
+        obj_count_samples.append(obj_count)
+        pool_size_samples.append(kb_used)
+
+        # Delete ceph-backed cinder volume
+        u.delete_resource(self.cinder.volumes, cinder_vol, msg="cinder volume")
+
+        # Final check, ceph cinder pool object count and disk usage
+        time.sleep(10)
+        u.log.debug('Checking ceph cinder pool after volume delete...')
+        pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
+            sentry_unit, pool_id=CINDER_POOL)
+        obj_count_samples.append(obj_count)
+        pool_size_samples.append(kb_used)
+
+        # Validate ceph cinder pool object count samples over time
+        ret = self._validate_pool_samples(samples=obj_count_samples,
+                                          resource_type="cinder volume",
+                                          sample_type="pool object count")
+        if ret:
+            amulet.raise_status(amulet.FAIL, msg=ret)
+
+        # Validate ceph cinder pool disk space usage samples over time
+        ret = self._validate_pool_samples(samples=pool_size_samples,
+                                          resource_type="cinder volume",
+                                          sample_type="pool disk usage size")
+        if ret:
+            amulet.raise_status(amulet.FAIL, msg=ret)
+
+    def test_412_ceph_glance_image_create_delete(self):
+        """Create and confirm a ceph-backed glance image, and inspect
+        ceph glance pool object count as the image is created
+        and deleted."""
+        sentry_unit = self.ceph0_sentry
+        obj_count_samples = []
+        pool_size_samples = []
+
+        # Check ceph glance pool object count, disk space usage and pool name
+        u.log.debug('Checking ceph glance pool original samples...')
+        pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
+            sentry_unit, pool_id=GLANCE_POOL)
+        obj_count_samples.append(obj_count)
+        pool_size_samples.append(kb_used)
+
+        expected = 'glance'
+        if pool_name != expected:
+            msg = ('Ceph glance pool {} unexpected name (actual, '
+                   'expected): {}. {}'.format(GLANCE_POOL,
+                                              pool_name, expected))
+            amulet.raise_status(amulet.FAIL, msg=msg)
+
+        # Create ceph-backed glance image
+        glance_img = u.create_cirros_image(self.glance, IMAGE_NAME)
+
+        # Re-check ceph glance pool object count and disk usage
+        time.sleep(10)
+        u.log.debug('Checking ceph glance pool samples after image create...')
+        pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
+            sentry_unit, pool_id=GLANCE_POOL)
+        obj_count_samples.append(obj_count)
+        pool_size_samples.append(kb_used)
+
+        # Delete ceph-backed glance image
+        u.delete_resource(self.glance.images,
+                          glance_img, msg="glance image")
+
+        # Final check, ceph glance pool object count and disk usage
+        time.sleep(10)
+        u.log.debug('Checking ceph glance pool samples after image delete...')
+        pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
+            sentry_unit, pool_id=GLANCE_POOL)
+        obj_count_samples.append(obj_count)
+        pool_size_samples.append(kb_used)
+
+        # Validate ceph glance pool object count samples over time
+        ret = self._validate_pool_samples(samples=obj_count_samples,
+                                          resource_type="glance image",
+                                          sample_type="pool object count")
+        if ret:
+            amulet.raise_status(amulet.FAIL, msg=ret)
+
+        # Validate ceph glance pool disk space usage samples over time
+        ret = self._validate_pool_samples(samples=pool_size_samples,
+                                          resource_type="glance image",
+                                          sample_type="pool disk usage size")
+        if ret:
+            amulet.raise_status(amulet.FAIL, msg=ret)
+
+    def test_499_ceph_cmds_exit_zero(self):
+        """Check that all ceph commands in a list return zero on all
+        ceph units listed."""
+        sentry_units = [
+            self.ceph0_sentry,
+            self.ceph1_sentry,
+            self.ceph2_sentry
+        ]
+        commands = [
+            'sudo ceph -s',
+            'sudo ceph health',
+            'sudo ceph mds stat',
+            'sudo ceph pg stat',
+            'sudo ceph osd stat',
+            'sudo ceph mon stat',
+            'sudo ceph osd pool get data size',
+            'sudo ceph osd pool get data pg_num',
+        ]
+        ret = u.check_commands_on_units(commands, sentry_units)
+        if ret:
+            amulet.raise_status(amulet.FAIL, msg=ret)
+
+    # FYI: No restart check as ceph services do not restart
+    # when charm config changes, unless monitor count increases.
+
+    def test_999(self):
+        u.log.error('Fake fail!')
+        raise
