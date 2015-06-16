@@ -17,9 +17,6 @@ u = OpenStackAmuletUtils(DEBUG)
 
 # Resource names and constants
 IMAGE_NAME = 'cirros-image-1'
-POOLS = ['data', 'metadata', 'rbd', 'cinder', 'glance']
-CINDER_POOL = 3
-GLANCE_POOL = 4
 
 
 class CephBasicDeployment(OpenStackAmuletDeployment):
@@ -158,6 +155,26 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
                                                   self.demo_user,
                                                   'password',
                                                   self.demo_tenant)
+
+    def _ceph_expected_pools(self):
+        """Return a dict of expected ceph pools based on
+        Ubuntu-OpenStack release"""
+        if self._get_openstack_release() >= self.trusty_kilo:
+            # Kilo or later
+            return {
+                'rbd': 0,
+                'cinder': 1,
+                'glance': 2
+            }
+        else:
+            # Juno or earlier
+            return {
+                'data': 0,
+                'metadata': 1,
+                'rbd': 2,
+                'cinder': 3,
+                'glance': 4
+            }
 
     def _ceph_osd_id(self, index):
         """Produce a shell command that will return a ceph-osd id."""
@@ -384,15 +401,23 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         u.log.debug('Checking glance (rbd) config file data...')
         unit = self.glance_sentry
         conf = '/etc/glance/glance-api.conf'
-        expected = {
-            'DEFAULT': {
-                'default_store': 'rbd',
-                'rbd_store_ceph_conf': '/etc/ceph/ceph.conf',
-                'rbd_store_user': 'glance',
-                'rbd_store_pool': 'glance',
-                'rbd_store_chunk_size': '8'
-            }
+        config = {
+            'default_store': 'rbd',
+            'rbd_store_ceph_conf': '/etc/ceph/ceph.conf',
+            'rbd_store_user': 'glance',
+            'rbd_store_pool': 'glance',
+            'rbd_store_chunk_size': '8'
         }
+
+        if self._get_openstack_release() >= self.trusty_kilo:
+            # Kilo or later
+            config['stores'] = 'glance.store.filesystem.Store,glance.store.http.Store,glance.store.rbd.Store'  # noqa
+            section = 'glance_store'
+        else:
+            # Juno or earlier
+            section = 'DEFAULT'
+
+        expected = {section: config}
         for section, pairs in expected.iteritems():
             ret = u.validate_config_data(unit, conf, section, pairs)
             if ret:
@@ -423,6 +448,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         u.log.debug('Checking pools on ceph units...')
 
         cmd = 'sudo ceph osd lspools'
+        pools = self._ceph_expected_pools()
         results = []
         sentries = [
             self.ceph0_sentry,
@@ -441,7 +467,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
                 amulet.raise_status(amulet.FAIL, msg=msg)
 
             # Check for presence of all pools on this unit
-            for pool in POOLS:
+            for pool in pools:
                 if pool not in output:
                     msg = ('{} does not have pool: '
                            '{}'.format(sentry_unit.info['unit_name'], pool))
@@ -465,18 +491,20 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         sentry_unit = self.ceph0_sentry
         obj_count_samples = []
         pool_size_samples = []
+        pools = self._ceph_expected_pools()
+        cinder_pool = pools['cinder']
 
         # Check ceph cinder pool object count, disk space usage and pool name
         u.log.debug('Checking ceph cinder pool original samples...')
         pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
-            sentry_unit, pool_id=CINDER_POOL)
+            sentry_unit, pool_id=cinder_pool)
         obj_count_samples.append(obj_count)
         pool_size_samples.append(kb_used)
 
         expected = 'cinder'
         if pool_name != expected:
             msg = ('Ceph pool {} unexpected name (actual, expected): '
-                   '{}. {}'.format(CINDER_POOL, pool_name, expected))
+                   '{}. {}'.format(cinder_pool, pool_name, expected))
             amulet.raise_status(amulet.FAIL, msg=msg)
 
         # Create ceph-backed cinder volume
@@ -486,7 +514,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         time.sleep(10)
         u.log.debug('Checking ceph cinder pool samples after volume create...')
         pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
-            sentry_unit, pool_id=CINDER_POOL)
+            sentry_unit, pool_id=cinder_pool)
         obj_count_samples.append(obj_count)
         pool_size_samples.append(kb_used)
 
@@ -497,7 +525,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         time.sleep(10)
         u.log.debug('Checking ceph cinder pool after volume delete...')
         pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
-            sentry_unit, pool_id=CINDER_POOL)
+            sentry_unit, pool_id=cinder_pool)
         obj_count_samples.append(obj_count)
         pool_size_samples.append(kb_used)
 
@@ -522,18 +550,20 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         sentry_unit = self.ceph0_sentry
         obj_count_samples = []
         pool_size_samples = []
+        pools = self._ceph_expected_pools()
+        glance_pool = pools['glance']
 
         # Check ceph glance pool object count, disk space usage and pool name
         u.log.debug('Checking ceph glance pool original samples...')
         pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
-            sentry_unit, pool_id=GLANCE_POOL)
+            sentry_unit, pool_id=glance_pool)
         obj_count_samples.append(obj_count)
         pool_size_samples.append(kb_used)
 
         expected = 'glance'
         if pool_name != expected:
             msg = ('Ceph glance pool {} unexpected name (actual, '
-                   'expected): {}. {}'.format(GLANCE_POOL,
+                   'expected): {}. {}'.format(glance_pool,
                                               pool_name, expected))
             amulet.raise_status(amulet.FAIL, msg=msg)
 
@@ -544,7 +574,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         time.sleep(10)
         u.log.debug('Checking ceph glance pool samples after image create...')
         pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
-            sentry_unit, pool_id=GLANCE_POOL)
+            sentry_unit, pool_id=glance_pool)
         obj_count_samples.append(obj_count)
         pool_size_samples.append(kb_used)
 
@@ -556,7 +586,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         time.sleep(10)
         u.log.debug('Checking ceph glance pool samples after image delete...')
         pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
-            sentry_unit, pool_id=GLANCE_POOL)
+            sentry_unit, pool_id=glance_pool)
         obj_count_samples.append(obj_count)
         pool_size_samples.append(kb_used)
 
@@ -575,22 +605,19 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             amulet.raise_status(amulet.FAIL, msg=ret)
 
     def test_499_ceph_cmds_exit_zero(self):
-        """Check that all ceph commands in a list return zero on all
-        ceph units listed."""
+        """Check basic functionality of ceph cli commands against
+        all ceph units."""
         sentry_units = [
             self.ceph0_sentry,
             self.ceph1_sentry,
             self.ceph2_sentry
         ]
         commands = [
-            'sudo ceph -s',
             'sudo ceph health',
             'sudo ceph mds stat',
             'sudo ceph pg stat',
             'sudo ceph osd stat',
             'sudo ceph mon stat',
-            'sudo ceph osd pool get data size',
-            'sudo ceph osd pool get data pg_num',
         ]
         ret = u.check_commands_on_units(commands, sentry_units)
         if ret:
