@@ -185,7 +185,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         obj_count = df['pools'][pool_id]['stats']['objects']
         kb_used = df['pools'][pool_id]['stats']['kb_used']
         u.log.debug('Ceph {} pool (ID {}): {} objects, '
-                    '{} kb used'.format(_pool_name,
+                    '{} kb used'.format(pool_name,
                                         pool_id,
                                         obj_count,
                                         kb_used))
@@ -598,7 +598,3 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
 
     # FYI: No restart check as ceph services do not restart
     # when charm config changes, unless monitor count increases.
-
-    def test_999(self):
-        u.log.error('Fake fail!')
-        raise

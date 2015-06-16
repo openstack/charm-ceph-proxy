@@ -423,7 +423,7 @@ class AmuletUtils(object):
     def check_commands_on_units(self, commands, sentry_units):
         """Check that all commands in a list exit zero on all
         sentry units in a list.
-        
+
         :param commands:  list of bash commands
         :param sentry_units:  list of sentry unit pointers
         :returns: None if successful; Failure message otherwise
