@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import amulet
-import json
 import time
 from charmhelpers.contrib.openstack.amulet.deployment import (
     OpenStackAmuletDeployment
@@ -156,83 +155,14 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
                                                   'password',
                                                   self.demo_tenant)
 
-    def _ceph_expected_pools(self):
-        """Return a dict of expected ceph pools based on
-        Ubuntu-OpenStack release"""
-        if self._get_openstack_release() >= self.trusty_kilo:
-            # Kilo or later
-            return {
-                'rbd': 0,
-                'cinder': 1,
-                'glance': 2
-            }
-        else:
-            # Juno or earlier
-            return {
-                'data': 0,
-                'metadata': 1,
-                'rbd': 2,
-                'cinder': 3,
-                'glance': 4
-            }
-
-    def _ceph_osd_id(self, index):
-        """Produce a shell command that will return a ceph-osd id."""
-        return "`initctl list | grep 'ceph-osd ' | awk 'NR=={} {{ print $2 }}' | grep -o '[0-9]*'`".format(index + 1)  # noqa
-
-    def _ceph_df(self, sentry_unit):
-        """Return dict of ceph df json output"""
-        cmd = 'sudo ceph df --format=json'
-        output, code = sentry_unit.run(cmd)
-        if code != 0:
-            msg = ('{} `{}` returned {} '
-                   '{}'.format(sentry_unit.info['unit_name'],
-                               cmd, code, output))
-            u.log.debug(msg)
-            amulet.raise_status(amulet.FAIL, msg=msg)
-
-        df = json.loads(output)
-        return df
-
-    def _take_ceph_pool_sample(self, sentry_unit, pool_id=0):
-        """Return ceph pool name, object count and disk space used
-        for the specified pool ID number."""
-        df = self._ceph_df(sentry_unit)
-        pool_name = df['pools'][pool_id]['name']
-        obj_count = df['pools'][pool_id]['stats']['objects']
-        kb_used = df['pools'][pool_id]['stats']['kb_used']
-        u.log.debug('Ceph {} pool (ID {}): {} objects, '
-                    '{} kb used'.format(pool_name,
-                                        pool_id,
-                                        obj_count,
-                                        kb_used))
-        return pool_name, obj_count, kb_used
-
-    def _validate_pool_samples(self, samples, resource_type="item",
-                               sample_type="resource pool"):
-        """Validate ceph pool samples taken over time, such as pool
-        object counts or pool kb used, before adding, after adding, and
-        after deleting items which affect those pool attributes."""
-        original, created, deleted = range(3)
-
-        if samples[created] <= samples[original] or \
-                samples[deleted] >= samples[created]:
-            msg = ('Ceph {} samples ({}) '
-                   'unexpected.'.format(sample_type, samples))
-            return msg
-        else:
-            u.log.debug('Ceph {} samples (OK): '
-                        '{}'.format(sample_type, samples))
-            return None
-
     def test_100_services(self):
         """Verify the expected services are running on the service units."""
         ceph_services = [
             'ceph-mon-all',
             'ceph-mon id=`hostname`',
             'ceph-osd-all',
-            'ceph-osd id={}'.format(self._ceph_osd_id(0)),
-            'ceph-osd id={}'.format(self._ceph_osd_id(1))
+            'ceph-osd id={}'.format(u.get_ceph_osd_id_cmd(0)),
+            'ceph-osd id={}'.format(u.get_ceph_osd_id_cmd(1))
         ]
 
         services = {
@@ -448,7 +378,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         u.log.debug('Checking pools on ceph units...')
 
         cmd = 'sudo ceph osd lspools'
-        pools = self._ceph_expected_pools()
+        pools = self.get_ceph_expected_pools()
         results = []
         sentries = [
             self.ceph0_sentry,
@@ -491,13 +421,13 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         sentry_unit = self.ceph0_sentry
         obj_count_samples = []
         pool_size_samples = []
-        pools = self._ceph_expected_pools()
+        pools = self.get_ceph_expected_pools()
         cinder_pool = pools['cinder']
 
         # Check ceph cinder pool object count, disk space usage and pool name
         u.log.debug('Checking ceph cinder pool original samples...')
-        pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
-            sentry_unit, pool_id=cinder_pool)
+        pool_name, obj_count, kb_used = u.get_ceph_pool_sample(sentry_unit,
+                                                               cinder_pool)
         obj_count_samples.append(obj_count)
         pool_size_samples.append(kb_used)
 
@@ -513,8 +443,8 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         # Re-check ceph cinder pool object count and disk usage
         time.sleep(10)
         u.log.debug('Checking ceph cinder pool samples after volume create...')
-        pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
-            sentry_unit, pool_id=cinder_pool)
+        pool_name, obj_count, kb_used = u.get_ceph_pool_sample(sentry_unit,
+                                                               cinder_pool)
         obj_count_samples.append(obj_count)
         pool_size_samples.append(kb_used)
 
@@ -524,22 +454,20 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         # Final check, ceph cinder pool object count and disk usage
         time.sleep(10)
         u.log.debug('Checking ceph cinder pool after volume delete...')
-        pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
-            sentry_unit, pool_id=cinder_pool)
+        pool_name, obj_count, kb_used = u.get_ceph_pool_sample(sentry_unit,
+                                                               cinder_pool)
         obj_count_samples.append(obj_count)
         pool_size_samples.append(kb_used)
 
         # Validate ceph cinder pool object count samples over time
-        ret = self._validate_pool_samples(samples=obj_count_samples,
-                                          resource_type="cinder volume",
-                                          sample_type="pool object count")
+        ret = u.validate_ceph_pool_samples(obj_count_samples,
+                                           "cinder pool object count")
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
         # Validate ceph cinder pool disk space usage samples over time
-        ret = self._validate_pool_samples(samples=pool_size_samples,
-                                          resource_type="cinder volume",
-                                          sample_type="pool disk usage size")
+        ret = u.validate_ceph_pool_samples(pool_size_samples,
+                                           "cinder pool disk usage")
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
@@ -550,13 +478,13 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         sentry_unit = self.ceph0_sentry
         obj_count_samples = []
         pool_size_samples = []
-        pools = self._ceph_expected_pools()
+        pools = self.get_ceph_expected_pools()
         glance_pool = pools['glance']
 
         # Check ceph glance pool object count, disk space usage and pool name
         u.log.debug('Checking ceph glance pool original samples...')
-        pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
-            sentry_unit, pool_id=glance_pool)
+        pool_name, obj_count, kb_used = u.get_ceph_pool_sample(sentry_unit,
+                                                               glance_pool)
         obj_count_samples.append(obj_count)
         pool_size_samples.append(kb_used)
 
@@ -573,8 +501,8 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         # Re-check ceph glance pool object count and disk usage
         time.sleep(10)
         u.log.debug('Checking ceph glance pool samples after image create...')
-        pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
-            sentry_unit, pool_id=glance_pool)
+        pool_name, obj_count, kb_used = u.get_ceph_pool_sample(sentry_unit,
+                                                               glance_pool)
         obj_count_samples.append(obj_count)
         pool_size_samples.append(kb_used)
 
@@ -585,22 +513,20 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         # Final check, ceph glance pool object count and disk usage
         time.sleep(10)
         u.log.debug('Checking ceph glance pool samples after image delete...')
-        pool_name, obj_count, kb_used = self._take_ceph_pool_sample(
-            sentry_unit, pool_id=glance_pool)
+        pool_name, obj_count, kb_used = u.get_ceph_pool_sample(sentry_unit,
+                                                               glance_pool)
         obj_count_samples.append(obj_count)
         pool_size_samples.append(kb_used)
 
         # Validate ceph glance pool object count samples over time
-        ret = self._validate_pool_samples(samples=obj_count_samples,
-                                          resource_type="glance image",
-                                          sample_type="pool object count")
+        ret = u.validate_ceph_pool_samples(obj_count_samples,
+                                           "glance pool object count")
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
         # Validate ceph glance pool disk space usage samples over time
-        ret = self._validate_pool_samples(samples=pool_size_samples,
-                                          resource_type="glance image",
-                                          sample_type="pool disk usage size")
+        ret = u.validate_ceph_pool_samples(pool_size_samples,
+                                           "glance pool disk usage")
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
