@@ -341,7 +341,9 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
 
         if self._get_openstack_release() >= self.trusty_kilo:
             # Kilo or later
-            config['stores'] = 'glance.store.filesystem.Store,glance.store.http.Store,glance.store.rbd.Store'  # noqa
+            config['stores'] = ('glance.store.filesystem.Store,'
+                                'glance.store.http.Store,'
+                                'glance.store.rbd.Store')
             section = 'glance_store'
         else:
             # Juno or earlier
