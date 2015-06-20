@@ -155,15 +155,31 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
                                                   'password',
                                                   self.demo_tenant)
 
-    def test_100_services(self):
+    def test_100_ceph_processes(self):
+        """Verify that the expected service processes are running
+        on each ceph unit."""
+
+        # Process name and quantity of processes to expect on each unit
+        ceph_processes = {
+            'ceph-mon': 1,
+            'ceph-mon': 1,
+            'ceph-osd': 2
+        }
+
+        # Units with process names and PID quantities expected
+        expected_processes = {
+            self.ceph0_sentry: ceph_processes,
+            self.ceph1_sentry: ceph_processes,
+            self.ceph2_sentry: ceph_processes
+        }
+
+        actual_pids = u.get_unit_process_ids(expected_processes)
+        ret = u.validate_unit_process_ids(expected_processes, actual_pids)
+        if ret:
+            amulet.raise_status(amulet.FAIL, msg=ret)
+
+    def test_102_services(self):
         """Verify the expected services are running on the service units."""
-        ceph_services = [
-            'ceph-mon-all',
-            'ceph-mon id=`hostname`',
-            'ceph-osd-all',
-            'ceph-osd id={}'.format(u.get_ceph_osd_id_cmd(0)),
-            'ceph-osd id={}'.format(u.get_ceph_osd_id_cmd(1))
-        ]
 
         services = {
             self.mysql_sentry: ['mysql'],
@@ -175,10 +191,21 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             self.cinder_sentry: ['cinder-api',
                                  'cinder-scheduler',
                                  'cinder-volume'],
-            self.ceph0_sentry: ceph_services,
-            self.ceph1_sentry: ceph_services,
-            self.ceph2_sentry: ceph_services
         }
+
+        if self._get_openstack_release() < self.vivid_kilo:
+            # For upstart systems only.  Ceph services under systemd
+            # are checked by process name instead.
+            ceph_services = [
+                'ceph-mon-all',
+                'ceph-mon id=`hostname`',
+                'ceph-osd-all',
+                'ceph-osd id={}'.format(u.get_ceph_osd_id_cmd(0)),
+                'ceph-osd id={}'.format(u.get_ceph_osd_id_cmd(1))
+            ]
+            services[self.ceph0_sentry] = ceph_services
+            services[self.ceph1_sentry] = ceph_services
+            services[self.ceph2_sentry] = ceph_services
 
         ret = u.validate_services_by_name(services)
         if ret:
