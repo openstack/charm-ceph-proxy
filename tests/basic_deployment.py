@@ -406,8 +406,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         identical, and expect specific pools to be present."""
         u.log.debug('Checking pools on ceph units...')
 
-        cmd = 'sudo ceph osd lspools'
-        pools = self.get_ceph_expected_pools()
+        expected_pools = self.get_ceph_expected_pools()
         results = []
         sentries = [
             self.ceph0_sentry,
@@ -415,33 +414,31 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             self.ceph2_sentry
         ]
 
+        # Check for presence of expected pools on each unit
+        u.log.debug('Expected pools: {}'.format(expected_pools))
         for sentry_unit in sentries:
-            output, code = sentry_unit.run(cmd)
-            results.append(output)
-            msg = ('{} `{}` returned {} '
-                   '{}'.format(sentry_unit.info['unit_name'],
-                               cmd, code, output))
-            u.log.debug(msg)
-            if code != 0:
-                amulet.raise_status(amulet.FAIL, msg=msg)
+            pools = u.get_ceph_pools(sentry_unit)
+            results.append(pools)
 
-            # Check for presence of all pools on this unit
-            for pool in pools:
-                if pool not in output:
+            for expected_pool in expected_pools:
+                if expected_pool not in pools:
                     msg = ('{} does not have pool: '
-                           '{}'.format(sentry_unit.info['unit_name'], pool))
+                           '{}'.format(sentry_unit.info['unit_name'],
+                                       expected_pool))
                     amulet.raise_status(amulet.FAIL, msg=msg)
-            u.log.debug('{} has the expected '
+            u.log.debug('{} has (at least) the expected '
                         'pools.'.format(sentry_unit.info['unit_name']))
 
-        # Check that lspool produces the same output on all units
-        if len(set(results)) == 1:
+        # Check that all units returned the same pool name:id data
+        ret = u.validate_list_of_identical_dicts(results)
+        if ret:
+            u.log.debug('Pool list results: {}'.format(results))
+            msg = ('{}; Pool list results are not identical on all '
+                   'ceph units.'.format(ret))
+            amulet.raise_status(amulet.FAIL, msg=msg)
+        else:
             u.log.debug('Pool list on all ceph units produced the '
                         'same results (OK).')
-        else:
-            u.log.debug('Pool list results: {}'.format(results))
-            msg = 'Pool list results are not identical on all ceph units.'
-            amulet.raise_status(amulet.FAIL, msg=msg)
 
     def test_410_ceph_cinder_vol_create(self):
         """Create and confirm a ceph-backed cinder volume, and inspect
@@ -450,7 +447,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         sentry_unit = self.ceph0_sentry
         obj_count_samples = []
         pool_size_samples = []
-        pools = self.get_ceph_expected_pools()
+        pools = u.get_ceph_pools(self.ceph0_sentry)
         cinder_pool = pools['cinder']
 
         # Check ceph cinder pool object count, disk space usage and pool name
@@ -507,7 +504,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         sentry_unit = self.ceph0_sentry
         obj_count_samples = []
         pool_size_samples = []
-        pools = self.get_ceph_expected_pools()
+        pools = u.get_ceph_pools(self.ceph0_sentry)
         glance_pool = pools['glance']
 
         # Check ceph glance pool object count, disk space usage and pool name
