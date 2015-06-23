@@ -14,9 +14,6 @@ from charmhelpers.contrib.openstack.amulet.utils import (  # noqa
 # Use DEBUG to turn on debug logging
 u = OpenStackAmuletUtils(DEBUG)
 
-# Resource names and constants
-IMAGE_NAME = 'cirros-image-1'
-
 
 class CephBasicDeployment(OpenStackAmuletDeployment):
     """Amulet tests on a basic ceph deployment."""
@@ -522,7 +519,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             amulet.raise_status(amulet.FAIL, msg=msg)
 
         # Create ceph-backed glance image
-        glance_img = u.create_cirros_image(self.glance, IMAGE_NAME)
+        glance_img = u.create_cirros_image(self.glance, "cirros-image-1")
 
         # Re-check ceph glance pool object count and disk usage
         time.sleep(10)
