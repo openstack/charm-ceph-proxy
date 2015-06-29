@@ -9,8 +9,10 @@ sources:
 packages:
     - amulet
     - python-amulet
-    - python-distro-info
-    - python-keystoneclient
-    - python-glanceclient
     - python-cinderclient
+    - python-distro-info
+    - python-glanceclient
+    - python-heatclient
+    - python-keystoneclient
     - python-novaclient
+    - python-swiftclient
