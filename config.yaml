@@ -109,17 +109,17 @@ options:
     default:
     description: |
       Optional configuration to support use of additional sources such as:
-      .
+
         - ppa:myteam/ppa
-        - cloud:precise-proposed/icehouse
+        - cloud:trusty-proposed/kilo
         - http://my.archive.com/ubuntu main
-      .
+
       The last option should be used in conjunction with the key configuration
       option.
-      .
+
       Note that a minimum ceph version of 0.48.2 is required for use with this
       charm which is NOT provided by the packages in the main Ubuntu archive
-      for precise but is provided in the Folsom cloud archive.
+      for precise but is provided in the Ubuntu cloud archive.
   key:
     type: string
     default:
@@ -150,7 +150,7 @@ options:
       If True enables IPv6 support. The charm will expect network interfaces
       to be configured with an IPv6 address. If set to False (default) IPv4
       is expected.
-      .
+
       NOTE: these charms do not currently support IPv6 privacy extension. In
       order for this charm to function correctly, the privacy extension must be
       disabled and a non-temporary address must be configured/available on
