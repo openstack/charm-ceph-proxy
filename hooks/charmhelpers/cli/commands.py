@@ -26,7 +26,7 @@ from . import CommandLine  # noqa
 """
 Import the sub-modules which have decorated subcommands to register with chlp.
 """
-import host  # noqa
-import benchmark  # noqa
-import unitdata  # noqa
-from charmhelpers.core import hookenv  # noqa
+from . import host  # noqa
+from . import benchmark  # noqa
+from . import unitdata  # noqa
+from . import hookenv  # noqa
