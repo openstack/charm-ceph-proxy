@@ -31,10 +31,14 @@ def process_requests(reqs):
     This is a versioned api. API version must be supplied by the client making
     the request.
     """
+    rq_id = reqs.get('rq_id')
     try:
         version = reqs.get('api-version')
         if version == 1:
-            return process_requests_v1(reqs['ops'])
+            resp = process_requests_v1(reqs['ops'])
+            if rq_id:
+                resp['rq-id'] = rq_id
+            return resp
 
     except Exception as exc:
         log(str(exc), level=ERROR)
@@ -44,7 +48,10 @@ def process_requests(reqs):
         return {'exit-code': 1, 'stderr': msg}
 
     msg = ("Missing or invalid api version (%s)" % (version))
-    return {'exit-code': 1, 'stderr': msg}
+    resp = {'exit-code': 1, 'stderr': msg}
+    if rq_id:
+        resp['rq-id'] = rq_id
+    return resp
 
 
 def process_requests_v1(reqs):
