@@ -31,7 +31,7 @@ def process_requests(reqs):
     This is a versioned api. API version must be supplied by the client making
     the request.
     """
-    rq_id = reqs.get('rq_id')
+    rq_id = reqs.get('rq-id')
     try:
         version = reqs.get('api-version')
         if version == 1:
