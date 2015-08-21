@@ -424,7 +424,7 @@ class CephBrokerRq(object):
     @property
     def request(self):
         return json.dumps({'api-version': self.api_version, 'ops': self.ops,
-                           'rq-id': self.rq_id})
+                           'request-id': self.rq_id})
 
 
 class CephBrokerRsp(object):
@@ -440,7 +440,7 @@ class CephBrokerRsp(object):
 
     @property
     def req_id(self):
-        return self.rsp.get('rq-id')
+        return self.rsp.get('request-id')
 
     @property
     def exit_code(self):
