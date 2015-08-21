@@ -35,6 +35,7 @@ def process_requests(reqs):
     try:
         version = reqs.get('api-version')
         if version == 1:
+            log('Processing request {}'.format(request_id))
             resp = process_requests_v1(reqs['ops'])
             if request_id:
                 resp['request-id'] = request_id
