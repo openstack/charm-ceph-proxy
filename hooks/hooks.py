@@ -319,7 +319,13 @@ def client_relation_changed():
                 log("Not leader - ignoring broker request", level=DEBUG)
             else:
                 rsp = process_requests(settings['broker_req'])
-                relation_set(relation_settings={'broker_rsp': rsp})
+                unit_id =  remote_unit().replace('/', '-')
+                unit_response_key = 'broker_rsp_' + unit_id
+                data = {
+                    'broker_rsp': rsp,
+                    unit_response_key: rsp,
+                }
+                relation_set(relation_settings=data)
     else:
         log('mon cluster not in quorum', level=DEBUG)
 
