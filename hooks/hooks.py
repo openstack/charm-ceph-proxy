@@ -320,9 +320,9 @@ def client_relation_changed():
             else:
                 rsp = process_requests(settings['broker_req'])
                 unit_id =  remote_unit().replace('/', '-')
-                unit_response_key = 'broker_rsp_' + unit_id
+                unit_response_key = 'broker-rsp-' + unit_id
                 data = {
-                    'unit_targeted_reponses': True,
+                    'unit-targeted-reponses': True,
                     'broker_rsp': rsp,
                     unit_response_key: rsp,
                 }
