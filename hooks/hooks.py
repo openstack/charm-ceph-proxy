@@ -319,7 +319,7 @@ def client_relation_changed():
                 log("Not leader - ignoring broker request", level=DEBUG)
             else:
                 rsp = process_requests(settings['broker_req'])
-                unit_id =  remote_unit().replace('/', '-')
+                unit_id = remote_unit().replace('/', '-')
                 unit_response_key = 'broker-rsp-' + unit_id
                 data = {
                     'unit-targeted-reponses': True,
