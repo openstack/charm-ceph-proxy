@@ -321,6 +321,8 @@ def client_relation_changed():
                 rsp = process_requests(settings['broker_req'])
                 unit_id = remote_unit().replace('/', '-')
                 unit_response_key = 'broker-rsp-' + unit_id
+                # broker_rsp is being left for backward compatibility,
+                # unit_response_key superscedes it
                 data = {
                     'broker_rsp': rsp,
                     unit_response_key: rsp,
