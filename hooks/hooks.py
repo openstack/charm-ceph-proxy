@@ -76,7 +76,7 @@ def install_upstart_scripts():
             shutil.copy(x, '/etc/init/')
 
 
-@hooks.hook('install')
+@hooks.hook('install.real')
 def install():
     execd_preinstall()
     add_source(config('source'), config('key'))
