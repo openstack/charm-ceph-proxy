@@ -26,7 +26,9 @@ from charmhelpers.core.hookenv import (
     remote_unit,
     Hooks, UnregisteredHookError,
     service_name,
-    relations_of_type
+    relations_of_type,
+    status_set,
+    local_unit,
 )
 from charmhelpers.core.host import (
     service_restart,
@@ -152,6 +154,7 @@ def config_changed():
 
     # Support use of single node ceph
     if (not ceph.is_bootstrapped() and int(config('monitor-count')) == 1):
+        status_set('maintenance', 'Bootstrapping single Ceph MON')
         ceph.bootstrap_monitor_cluster(config('monitor-secret'))
         ceph.wait_for_bootstrap()
 
@@ -179,6 +182,20 @@ def get_mon_hosts():
 
     hosts.sort()
     return hosts
+
+
+def get_peer_units():
+    '''
+    Returns a dictionary of unit names from the mon peer relation with
+    a flag indicating whether the unit has presented its address
+    '''
+    units = {}
+    units[local_unit()] = True
+    for relid in relation_ids('mon'):
+        for unit in related_units(relid):
+            addr = relation_get('ceph-public-address', unit, relid)
+            units[unit] = addr is not None
+    return units
 
 
 def reformat_osd():
@@ -210,6 +227,7 @@ def mon_relation():
 
     moncount = int(config('monitor-count'))
     if len(get_mon_hosts()) >= moncount:
+        status_set('maintenance', 'Bootstrapping MON cluster')
         ceph.bootstrap_monitor_cluster(config('monitor-secret'))
         ceph.wait_for_bootstrap()
         for dev in get_devices():
@@ -384,8 +402,34 @@ def update_nrpe_config():
     nrpe_setup.write()
 
 
+def assess_status():
+    '''Assess status of current unit'''
+    moncount = int(config('monitor-count'))
+    units = get_peer_units()
+    # not enough peers and mon_count > 1
+    if len(units.keys()) < moncount:
+        status_set('blocked', 'Insufficient peer units to bootstrap'
+                              ' cluster (require {})'.format(moncount))
+        return
+
+    # mon_count > 1, peers, but no ceph-public-address
+    ready = sum(1 for unit_ready in units.itervalues() if unit_ready)
+    if ready < moncount:
+        status_set('waiting', 'Peer units detected, waiting for addresses')
+        return
+
+    # active - bootstrapped + quorum status check
+    if ceph.is_bootstrapped() and ceph.is_quorum():
+        status_set('active', 'Unit active and clustered')
+    else:
+        # Unit should be running and clustered, but no quorum
+        # TODO: should this be blocked or waiting?
+        status_set('blocked', 'Unit not clustered (no quorum)')
+
+
 if __name__ == '__main__':
     try:
         hooks.execute(sys.argv)
     except UnregisteredHookError as e:
         log('Unknown hook {} - skipping.'.format(e))
+    assess_status()
