@@ -93,4 +93,3 @@ class ServiceStatusTestCase(test_utils.CharmTestCase):
                            'ceph-mon2': True,
                            'ceph-mon3': True},
                           hooks.get_peer_units())
-
