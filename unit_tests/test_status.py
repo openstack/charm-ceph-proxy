@@ -1,8 +1,7 @@
 import mock
 import test_utils
 
-with mock.patch('utils.get_unit_hostname'):
-    import ceph_hooks as hooks
+import ceph_hooks as hooks
 
 TO_PATCH = [
     'status_set',
