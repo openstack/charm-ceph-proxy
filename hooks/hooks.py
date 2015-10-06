@@ -420,7 +420,7 @@ def assess_status():
 
     # active - bootstrapped + quorum status check
     if ceph.is_bootstrapped() and ceph.is_quorum():
-        status_set('active', 'Unit active and clustered')
+        status_set('active', 'Unit is ready and clustered')
     else:
         # Unit should be running and clustered, but no quorum
         # TODO: should this be blocked or waiting?
