@@ -23,6 +23,8 @@ from charmhelpers.core.hookenv import (
     related_units,
     relation_get,
     relation_set,
+    leader_set, leader_get,
+    is_leader,
     remote_unit,
     Hooks, UnregisteredHookError,
     service_name,
@@ -91,7 +93,7 @@ def emit_cephconf():
     cephcontext = {
         'auth_supported': config('auth-supported'),
         'mon_hosts': ' '.join(get_mon_hosts()),
-        'fsid': config('fsid'),
+        'fsid': leader_get('fsid'),
         'old_auth': cmp_pkgrevno('ceph', "0.51") < 0,
         'osd_journal_size': config('osd-journal-size'),
         'use_syslog': str(config('use-syslog')).lower(),
@@ -126,13 +128,28 @@ def config_changed():
 
     log('Monitor hosts are ' + repr(get_mon_hosts()))
 
-    # Pre-flight checks
-    if not config('fsid'):
-        log('No fsid supplied, cannot proceed.', level=ERROR)
-        sys.exit(1)
-    if not config('monitor-secret'):
-        log('No monitor-secret supplied, cannot proceed.', level=ERROR)
-        sys.exit(1)
+    if is_leader():
+        if not leader_get('fsid') or not leader_get('monitor-secret'):
+            if config('fsid'):
+                fsid = config('fsid')
+            else:
+                fsid = "{}".format(uuid.uuid1())
+            if config('monitor-secret'):
+                mon_secret = config('monitor-secret')
+            else:
+                mon_secret = "{}".format(ceph.generate_monitor_secret())
+            status_set('maintenance', 'Creating FSID and Monitor Secret')
+            opts = {
+                'fsid': fsid,
+                'monitor-secret': mon_secret,
+            }
+            log("Settings for the cluster are: {}".format(opts))
+            leader_set(opts)
+    else:
+        if leader_get('fsid') is None or leader_get('monitor-secret') is None:
+            log('still waiting for leader to setup keys')
+            status_set('waiting', 'Waiting for leader to setup keys')
+            sys.exit(0)
 
     sysctl_dict = config('sysctl')
     if sysctl_dict:
@@ -191,12 +208,17 @@ def mon_relation_joined():
 @hooks.hook('mon-relation-departed',
             'mon-relation-changed')
 def mon_relation():
+    if leader_get('monitor-secret') is None:
+        log('still waiting for leader to setup keys')
+        status_set('waiting', 'Waiting for leader to setup keys')
+        return
     emit_cephconf()
 
     moncount = int(config('monitor-count'))
     if len(get_mon_hosts()) >= moncount:
         status_set('maintenance', 'Bootstrapping MON cluster')
-        ceph.bootstrap_monitor_cluster(config('monitor-secret'))
+        
+        ceph.bootstrap_monitor_cluster(leader_get('monitor-secret'))
         ceph.wait_for_bootstrap()
         notify_osds()
         notify_radosgws()
@@ -239,7 +261,7 @@ def osd_relation(relid=None):
     if ceph.is_quorum():
         log('mon cluster in quorum - providing fsid & keys')
         data = {
-            'fsid': config('fsid'),
+            'fsid': leader_get('fsid'),
             'osd_bootstrap_key': ceph.get_osd_bootstrap_key(),
             'auth': config('auth-supported'),
             'ceph-public-address': get_public_addr(),
@@ -268,7 +290,7 @@ def radosgw_relation(relid=None):
                 unit_response_key = 'broker-rsp-' + unit_id
                 log('mon cluster in quorum - providing radosgw with keys')
                 data = {
-                    'fsid': config('fsid'),
+                    'fsid': leader_get('fsid'),
                     'radosgw_key': ceph.get_radosgw_key(),
                     'auth': config('auth-supported'),
                     'ceph-public-address': get_public_addr(),
