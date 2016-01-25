@@ -12,7 +12,7 @@ import glob
 import os
 import shutil
 import sys
-
+import uuid
 import ceph
 from charmhelpers.core.hookenv import (
     log,

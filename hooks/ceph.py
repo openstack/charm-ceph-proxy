@@ -230,6 +230,19 @@ def import_osd_bootstrap_key(key):
         ]
         subprocess.check_call(cmd)
 
+
+def generate_monitor_secret():
+    cmd = [
+        'ceph-authtool',
+        '/dev/stdout',
+        '--name=mon.',
+        '--gen-key'
+    ]
+    res = subprocess.check_output(cmd)
+
+    return "{}==".format(res.split('=')[1].strip())
+
+
 # OSD caps taken from ceph-create-keys
 _osd_bootstrap_caps = {
     'mon': [
