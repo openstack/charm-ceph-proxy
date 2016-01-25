@@ -35,9 +35,10 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
            and the rest of the service are from lp branches that are
            compatible with the local charm (e.g. stable or next).
            """
-        this_service = {'name': 'ceph', 'units': 3}
+        this_service = {'name': 'ceph-mon', 'units': 3}
         other_services = [{'name': 'mysql'},
                           {'name': 'keystone'},
+                          {'name': 'ceph-osd', 'units': 3},
                           {'name': 'rabbitmq-server'},
                           {'name': 'nova-compute'},
                           {'name': 'glance'},
@@ -51,17 +52,18 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             'nova-compute:shared-db': 'mysql:shared-db',
             'nova-compute:amqp': 'rabbitmq-server:amqp',
             'nova-compute:image-service': 'glance:image-service',
-            'nova-compute:ceph': 'ceph:client',
+            'nova-compute:ceph': 'ceph-mon:client',
             'keystone:shared-db': 'mysql:shared-db',
             'glance:shared-db': 'mysql:shared-db',
             'glance:identity-service': 'keystone:identity-service',
             'glance:amqp': 'rabbitmq-server:amqp',
-            'glance:ceph': 'ceph:client',
+            'glance:ceph': 'ceph-mon:client',
             'cinder:shared-db': 'mysql:shared-db',
             'cinder:identity-service': 'keystone:identity-service',
             'cinder:amqp': 'rabbitmq-server:amqp',
             'cinder:image-service': 'glance:image-service',
-            'cinder:ceph': 'ceph:client'
+            'cinder:ceph': 'ceph-mon:client',
+            'ceph-osd:mon': 'ceph-mon:osd'
         }
         super(CephBasicDeployment, self)._add_relations(relations)
 
@@ -76,6 +78,9 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             'auth-supported': 'none',
             'fsid': '6547bd3e-1397-11e2-82e5-53567c8d32dc',
             'monitor-secret': 'AQCXrnZQwI7KGBAAiPofmKEXKxu5bUzoYLVkbQ==',
+        }
+
+        ceph_osd_config = {
             'osd-reformat': 'yes',
             'ephemeral-unmount': '/mnt',
             'osd-devices': '/dev/vdb /srv/ceph'
@@ -84,7 +89,8 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         configs = {'keystone': keystone_config,
                    'mysql': mysql_config,
                    'cinder': cinder_config,
-                   'ceph': ceph_config}
+                   'ceph-mon': ceph_config,
+                   'ceph-osd': ceph_osd_config}
         super(CephBasicDeployment, self)._configure_services(configs)
 
     def _initialize_tests(self):
@@ -96,9 +102,9 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         self.nova_sentry = self.d.sentry.unit['nova-compute/0']
         self.glance_sentry = self.d.sentry.unit['glance/0']
         self.cinder_sentry = self.d.sentry.unit['cinder/0']
-        self.ceph0_sentry = self.d.sentry.unit['ceph/0']
-        self.ceph1_sentry = self.d.sentry.unit['ceph/1']
-        self.ceph2_sentry = self.d.sentry.unit['ceph/2']
+        self.ceph0_sentry = self.d.sentry.unit['ceph-mon/0']
+        self.ceph1_sentry = self.d.sentry.unit['ceph-mon/1']
+        self.ceph2_sentry = self.d.sentry.unit['ceph-mon/2']
         u.log.debug('openstack release val: {}'.format(
             self._get_openstack_release()))
         u.log.debug('openstack release str: {}'.format(
@@ -211,7 +217,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         """Verify the ceph to nova ceph-client relation data."""
         u.log.debug('Checking ceph:nova-compute ceph relation data...')
         unit = self.ceph0_sentry
-        relation = ['client', 'nova-compute:ceph']
+        relation = ['client', 'nova-compute:ceph-mon']
         expected = {
             'private-address': u.valid_ip,
             'auth': 'none',
@@ -227,7 +233,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         """Verify the nova to ceph client relation data."""
         u.log.debug('Checking nova-compute:ceph ceph-client relation data...')
         unit = self.nova_sentry
-        relation = ['ceph', 'ceph:client']
+        relation = ['ceph-mon', 'ceph-mon:client']
         expected = {
             'private-address': u.valid_ip
         }
@@ -257,7 +263,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         """Verify the glance to ceph client relation data."""
         u.log.debug('Checking glance:ceph client relation data...')
         unit = self.glance_sentry
-        relation = ['ceph', 'ceph:client']
+        relation = ['ceph-mon', 'ceph-mon:client']
         expected = {
             'private-address': u.valid_ip
         }
@@ -287,7 +293,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         """Verify the cinder to ceph ceph-client relation data."""
         u.log.debug('Checking cinder:ceph ceph relation data...')
         unit = self.cinder_sentry
-        relation = ['ceph', 'ceph:client']
+        relation = ['ceph-mon', 'ceph-mon:client']
         expected = {
             'private-address': u.valid_ip
         }
