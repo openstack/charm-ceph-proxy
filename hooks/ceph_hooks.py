@@ -17,7 +17,6 @@ import ceph
 from charmhelpers.core.hookenv import (
     log,
     DEBUG,
-    ERROR,
     config,
     relation_ids,
     related_units,
@@ -34,7 +33,6 @@ from charmhelpers.core.hookenv import (
 )
 from charmhelpers.core.host import (
     service_restart,
-    umount,
     mkdir,
     write_file,
     rsync,
@@ -217,7 +215,6 @@ def mon_relation():
     moncount = int(config('monitor-count'))
     if len(get_mon_hosts()) >= moncount:
         status_set('maintenance', 'Bootstrapping MON cluster')
-        
         ceph.bootstrap_monitor_cluster(leader_get('monitor-secret'))
         ceph.wait_for_bootstrap()
         notify_osds()
