@@ -102,6 +102,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         self.nova_sentry = self.d.sentry.unit['nova-compute/0']
         self.glance_sentry = self.d.sentry.unit['glance/0']
         self.cinder_sentry = self.d.sentry.unit['cinder/0']
+        self.ceph_osd_sentry = self.d.sentry.unit['ceph-osd/0']
         self.ceph0_sentry = self.d.sentry.unit['ceph-mon/0']
         self.ceph1_sentry = self.d.sentry.unit['ceph-mon/1']
         self.ceph2_sentry = self.d.sentry.unit['ceph-mon/2']
@@ -164,8 +165,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
 
         # Process name and quantity of processes to expect on each unit
         ceph_processes = {
-            'ceph-mon': 1,
-            'ceph-osd': 2
+            'ceph-mon': 1
         }
 
         # Units with process names and PID quantities expected
@@ -193,6 +193,8 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             self.cinder_sentry: ['cinder-api',
                                  'cinder-scheduler',
                                  'cinder-volume'],
+            self.ceph_osd_sentry: ['ceph-osd',
+                                   'ceph-osd-all'],
         }
 
         if self._get_openstack_release() < self.vivid_kilo:
@@ -200,10 +202,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             # are checked by process name instead.
             ceph_services = [
                 'ceph-mon-all',
-                'ceph-mon id=`hostname`',
-                'ceph-osd-all',
-                'ceph-osd id={}'.format(u.get_ceph_osd_id_cmd(0)),
-                'ceph-osd id={}'.format(u.get_ceph_osd_id_cmd(1))
+                'ceph-mon id=`hostname`'
             ]
             services[self.ceph0_sentry] = ceph_services
             services[self.ceph1_sentry] = ceph_services
