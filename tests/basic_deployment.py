@@ -116,9 +116,6 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         u.log.debug('openstack release str: {}'.format(
             self._get_openstack_release_string()))
 
-        # Let things settle a bit original moving forward
-        time.sleep(30)
-
         # Authenticate admin with keystone
         self.keystone = u.authenticate_keystone_admin(self.keystone_sentry,
                                                       user='admin',
@@ -198,8 +195,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             self.cinder_sentry: ['cinder-api',
                                  'cinder-scheduler',
                                  'cinder-volume'],
-            self.ceph_osd_sentry: ['ceph-osd',
-                                   'ceph-osd-all'],
+            self.ceph_osd_sentry: ['ceph-osd-all'],
         }
 
         if self._get_openstack_release() < self.vivid_kilo:
@@ -219,9 +215,9 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
 
     def test_200_ceph_nova_client_relation(self):
         """Verify the ceph to nova ceph-client relation data."""
-        u.log.debug('Checking ceph:nova-compute ceph relation data...')
+        u.log.debug('Checking ceph:nova-compute ceph-mon relation data...')
         unit = self.ceph0_sentry
-        relation = ['client', 'nova-compute:ceph-mon']
+        relation = ['client', 'nova-compute:ceph']
         expected = {
             'private-address': u.valid_ip,
             'auth': 'none',
@@ -230,14 +226,14 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
 
         ret = u.validate_relation_data(unit, relation, expected)
         if ret:
-            message = u.relation_error('ceph to nova ceph-client', ret)
+            message = u.relation_error('ceph-mon to nova ceph-client', ret)
             amulet.raise_status(amulet.FAIL, msg=message)
 
     def test_201_nova_ceph_client_relation(self):
         """Verify the nova to ceph client relation data."""
         u.log.debug('Checking nova-compute:ceph ceph-client relation data...')
         unit = self.nova_sentry
-        relation = ['ceph-mon', 'ceph-mon:client']
+        relation = ['ceph', 'ceph-mon:client']
         expected = {
             'private-address': u.valid_ip
         }
@@ -267,7 +263,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         """Verify the glance to ceph client relation data."""
         u.log.debug('Checking glance:ceph client relation data...')
         unit = self.glance_sentry
-        relation = ['ceph-mon', 'ceph-mon:client']
+        relation = ['ceph', 'ceph-mon:client']
         expected = {
             'private-address': u.valid_ip
         }
@@ -297,7 +293,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         """Verify the cinder to ceph ceph-client relation data."""
         u.log.debug('Checking cinder:ceph ceph relation data...')
         unit = self.cinder_sentry
-        relation = ['ceph-mon', 'ceph-mon:client']
+        relation = ['ceph', 'ceph-mon:client']
         expected = {
             'private-address': u.valid_ip
         }
@@ -329,11 +325,6 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             },
             'mds': {
                 'keyring': '/var/lib/ceph/mds/$cluster-$id/keyring'
-            },
-            'osd': {
-                'keyring': '/var/lib/ceph/osd/$cluster-$id/keyring',
-                'osd journal size': '1024',
-                'filestore xattr use omap': 'true'
             },
         }
 
