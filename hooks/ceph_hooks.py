@@ -126,6 +126,12 @@ def config_changed():
 
     log('Monitor hosts are ' + repr(get_mon_hosts()))
 
+    sysctl_dict = config('sysctl')
+    if sysctl_dict:
+        create_sysctl(sysctl_dict, '/etc/sysctl.d/50-ceph-charm.conf')
+    if relations_of_type('nrpe-external-master'):
+        update_nrpe_config()
+
     if is_leader():
         if not leader_get('fsid') or not leader_get('monitor-secret'):
             if config('fsid'):
@@ -149,10 +155,6 @@ def config_changed():
             status_set('waiting', 'Waiting for leader to setup keys')
             sys.exit(0)
 
-    sysctl_dict = config('sysctl')
-    if sysctl_dict:
-        create_sysctl(sysctl_dict, '/etc/sysctl.d/50-ceph-charm.conf')
-
     emit_cephconf()
 
     # Support use of single node ceph
@@ -160,9 +162,6 @@ def config_changed():
         status_set('maintenance', 'Bootstrapping single Ceph MON')
         ceph.bootstrap_monitor_cluster(config('monitor-secret'))
         ceph.wait_for_bootstrap()
-
-    if relations_of_type('nrpe-external-master'):
-        update_nrpe_config()
 
 
 def get_mon_hosts():
