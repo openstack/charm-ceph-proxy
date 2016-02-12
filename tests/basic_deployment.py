@@ -437,6 +437,27 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             u.log.debug('Pool list on all ceph units produced the '
                         'same results (OK).')
 
+    def test_402_pause_resume_actions(self):
+        """Veryfy that pause/resume works"""
+        u.log.debug("Testing pause")
+        cmd = "ceph -s"
+
+        sentry_unit = self.ceph0_sentry
+        action_id = u.run_action(sentry_unit, 'pause-health')
+        assert u.wait_on_action(action_id), "Pause health action failed."
+
+        output, code = sentry_unit.run(cmd)
+        if 'nodown' not in output or 'noout' not in output:
+            amulet.raise_status(amulet.FAIL, msg="Missing noout,nodown")
+
+        u.log.debug("Testing resume")
+        action_id = u.run_action(sentry_unit, 'resume-health')
+        assert u.wait_on_action(action_id), "Resume health action failed."
+
+        output, code = sentry_unit.run(cmd)
+        if 'nodown' in output or 'noout' in output:
+            amulet.raise_status(amulet.FAIL, msg="Still has noout,nodown")
+
     def test_410_ceph_cinder_vol_create(self):
         """Create and confirm a ceph-backed cinder volume, and inspect
         ceph cinder pool object count as the volume is created
