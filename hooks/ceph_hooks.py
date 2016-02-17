@@ -230,6 +230,7 @@ def notify_osds():
 
 
 def notify_radosgws():
+    log('LY: notify_radosgws')
     for relid in relation_ids('radosgw'):
         for unit in related_units(relid):
             radosgw_relation(relid=relid, unit=unit)
@@ -273,16 +274,20 @@ def osd_relation(relid=None):
 @hooks.hook('radosgw-relation-joined')
 def radosgw_relation(relid=None, unit=None):
     # Install radosgw for admin tools
+    log('LY: radosgw_relation {} {}'.format(relid, unit))
     apt_install(packages=filter_installed_packages(['radosgw']))
     if not unit:
-        unit=remote_unit()
+        unit = remote_unit()
     """Process broker request(s)."""
     if ceph.is_quorum():
+        log('LY: ceph is quorum')
         settings = relation_get(rid=relid, unit=unit)
+        log('LY: {}'.format(settings))
         if 'broker_req' in settings:
             if not ceph.is_leader():
                 log("Not leader - ignoring broker request", level=DEBUG)
             else:
+                log('LY: Processing radosgw request')
                 rsp = process_requests(settings['broker_req'])
                 unit_id = unit.replace('/', '-')
                 unit_response_key = 'broker-rsp-' + unit_id
@@ -294,6 +299,7 @@ def radosgw_relation(relid=None, unit=None):
                     'ceph-public-address': get_public_addr(),
                     unit_response_key: rsp,
                 }
+                log('LY: Setting radosgw with {}'.format(data))
                 relation_set(relation_id=relid, relation_settings=data)
     else:
         log('mon cluster not in quorum - deferring key provision')
