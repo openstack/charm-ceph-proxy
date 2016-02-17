@@ -279,6 +279,10 @@ def radosgw_relation(relid=None, unit=None):
     if not unit:
         unit = remote_unit()
     """Process broker request(s)."""
+    import time
+    print "LY: Quorum: {}".format(ceph.is_quorum())
+    time.sleep(60)
+    print "LY: Quorum: {}".format(ceph.is_quorum())
     if ceph.is_quorum():
         log('LY: ceph is quorum')
         settings = relation_get(rid=relid, unit=unit)
