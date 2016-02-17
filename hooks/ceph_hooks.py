@@ -216,6 +216,7 @@ def mon_relation():
         status_set('maintenance', 'Bootstrapping MON cluster')
         ceph.bootstrap_monitor_cluster(leader_get('monitor-secret'))
         ceph.wait_for_bootstrap()
+        ceph.wait_for_quorum()
         notify_osds()
         notify_radosgws()
         notify_client()
