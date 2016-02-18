@@ -216,6 +216,7 @@ def mon_relation():
         status_set('maintenance', 'Bootstrapping MON cluster')
         ceph.bootstrap_monitor_cluster(leader_get('monitor-secret'))
         ceph.wait_for_bootstrap()
+        ceph.wait_for_quorum()
         notify_osds()
         notify_radosgws()
         notify_client()
@@ -231,7 +232,8 @@ def notify_osds():
 
 def notify_radosgws():
     for relid in relation_ids('radosgw'):
-        radosgw_relation(relid)
+        for unit in related_units(relid):
+            radosgw_relation(relid=relid, unit=unit)
 
 
 def notify_client():
@@ -270,19 +272,20 @@ def osd_relation(relid=None):
 
 @hooks.hook('radosgw-relation-changed')
 @hooks.hook('radosgw-relation-joined')
-def radosgw_relation(relid=None):
+def radosgw_relation(relid=None, unit=None):
     # Install radosgw for admin tools
     apt_install(packages=filter_installed_packages(['radosgw']))
-
+    if not unit:
+        unit = remote_unit()
     """Process broker request(s)."""
     if ceph.is_quorum():
-        settings = relation_get(rid=relid)
+        settings = relation_get(rid=relid, unit=unit)
         if 'broker_req' in settings:
             if not ceph.is_leader():
                 log("Not leader - ignoring broker request", level=DEBUG)
             else:
                 rsp = process_requests(settings['broker_req'])
-                unit_id = remote_unit().replace('/', '-')
+                unit_id = unit.replace('/', '-')
                 unit_response_key = 'broker-rsp-' + unit_id
                 log('mon cluster in quorum - providing radosgw with keys')
                 data = {
