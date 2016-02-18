@@ -41,6 +41,12 @@ By default the ceph cluster will not bootstrap until 3 service units have been
 deployed and started; this is to ensure that a quorum is achieved prior to adding
 storage devices.
 
+## Actions
+
+This charm supports pausing and resuming ceph's health functions on a cluster, for example when doing maintainance on a machine. to pause or resume, call:
+
+`juju action do --unit ceph-mon/0 pause-health` or `juju action do --unit ceph-mon/0 resume-health`
+
 ## Scale Out Usage
 
 You can use the Ceph OSD and Ceph Radosgw charms:
