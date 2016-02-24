@@ -54,6 +54,7 @@ from charmhelpers.core.sysctl import create as create_sysctl
 from charmhelpers.core.templating import render
 
 from utils import (
+    get_networks,
     get_public_addr,
     assert_charm_supports_ipv6
 )
@@ -88,6 +89,12 @@ def install():
 
 
 def emit_cephconf():
+    networks = get_networks('ceph-public-network')
+    public_network = ', '.join(networks)
+
+    networks = get_networks('ceph-cluster-network')
+    cluster_network = ', '.join(networks)
+
     cephcontext = {
         'auth_supported': config('auth-supported'),
         'mon_hosts': ' '.join(get_mon_hosts()),
@@ -95,16 +102,16 @@ def emit_cephconf():
         'old_auth': cmp_pkgrevno('ceph', "0.51") < 0,
         'osd_journal_size': config('osd-journal-size'),
         'use_syslog': str(config('use-syslog')).lower(),
-        'ceph_public_network': config('ceph-public-network'),
-        'ceph_cluster_network': config('ceph-cluster-network'),
+        'ceph_public_network': public_network,
+        'ceph_cluster_network': cluster_network,
         'loglevel': config('loglevel'),
     }
 
     if config('prefer-ipv6'):
         dynamic_ipv6_address = get_ipv6_addr()[0]
-        if not config('ceph-public-network'):
+        if not public_network:
             cephcontext['public_addr'] = dynamic_ipv6_address
-        if not config('ceph-cluster-network'):
+        if not cluster_network:
             cephcontext['cluster_addr'] = dynamic_ipv6_address
 
     # Install ceph.conf as an alternative to support
@@ -196,10 +203,11 @@ def get_peer_units():
 
 @hooks.hook('mon-relation-joined')
 def mon_relation_joined():
+    public_addr = get_public_addr()
     for relid in relation_ids('mon'):
         relation_set(relation_id=relid,
                      relation_settings={'ceph-public-address':
-                                        get_public_addr()})
+                                        public_addr})
 
 
 @hooks.hook('mon-relation-departed',
@@ -258,11 +266,12 @@ def upgrade_keys():
 def osd_relation(relid=None):
     if ceph.is_quorum():
         log('mon cluster in quorum - providing fsid & keys')
+        public_addr = get_public_addr()
         data = {
             'fsid': leader_get('fsid'),
             'osd_bootstrap_key': ceph.get_osd_bootstrap_key(),
             'auth': config('auth-supported'),
-            'ceph-public-address': get_public_addr(),
+            'ceph-public-address': public_addr,
         }
         relation_set(relation_id=relid,
                      relation_settings=data)
@@ -288,11 +297,12 @@ def radosgw_relation(relid=None, unit=None):
                 unit_id = unit.replace('/', '-')
                 unit_response_key = 'broker-rsp-' + unit_id
                 log('mon cluster in quorum - providing radosgw with keys')
+                public_addr = get_public_addr()
                 data = {
                     'fsid': leader_get('fsid'),
                     'radosgw_key': ceph.get_radosgw_key(),
                     'auth': config('auth-supported'),
-                    'ceph-public-address': get_public_addr(),
+                    'ceph-public-address': public_addr,
                     unit_response_key: rsp,
                 }
                 relation_set(relation_id=relid, relation_settings=data)
@@ -314,9 +324,10 @@ def client_relation_joined(relid=None):
                 service_name = units[0].split('/')[0]
 
         if service_name is not None:
+            public_addr = get_public_addr()
             data = {'key': ceph.get_named_key(service_name),
                     'auth': config('auth-supported'),
-                    'ceph-public-address': get_public_addr()}
+                    'ceph-public-address': public_addr}
             relation_set(relation_id=relid,
                          relation_settings=data)
     else:
