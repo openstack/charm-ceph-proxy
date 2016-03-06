@@ -2,3 +2,40 @@ pause-health:
   description: Pause ceph health operations across the entire ceph cluster
 resume-health:
   description: Resume ceph health operations across the entire ceph cluster
+create-cache-tier:
+  description: Create a new cache tier
+  params:
+    backer-pool:
+      type: string
+      description: |
+        The name of the pool that will back the cache tier. Also known as
+        the cold pool
+    cache-pool:
+      type: string
+      description: |
+        The name of the pool that will be the cache pool. Also known
+        as the hot pool
+    cache-mode:
+      type: string
+      default: writeback
+      enum: [writeback, readonly]
+      description: |
+        The mode of the caching tier.  Please refer to the Ceph docs for more
+        information
+  required: [backer-pool, cache-pool]
+  additionalProperties: false
+remove-cache-tier:
+  description: Remove an existing cache tier
+  params:
+    backer-pool:
+      type: string
+      description: |
+        The name of the pool that backs the cache tier. Also known as
+        the cold pool
+    cache-pool:
+      type: string
+      description: |
+        The name of the pool that is the cache pool. Also known
+        as the hot pool
+  required: [backer-pool, cache-pool]
+  additionalProperties: false

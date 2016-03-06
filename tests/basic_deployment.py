@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import amulet
+import re
 import time
 from charmhelpers.contrib.openstack.amulet.deployment import (
     OpenStackAmuletDeployment
@@ -9,7 +10,7 @@ from charmhelpers.contrib.openstack.amulet.utils import (  # noqa
     OpenStackAmuletUtils,
     DEBUG,
     # ERROR
-)
+    )
 
 # Use DEBUG to turn on debug logging
 u = OpenStackAmuletUtils(DEBUG)
@@ -457,6 +458,75 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         if 'nodown' in output or 'noout' in output:
             amulet.raise_status(amulet.FAIL, msg="Still has noout,nodown")
 
+    @staticmethod
+    def find_pool(sentry_unit, pool_name):
+        """
+        This will do a ceph osd dump and search for pool you specify
+        :param sentry_unit: The unit to run this command from.
+        :param pool_name: str.  The name of the Ceph pool to query
+        :return: str or None.  The ceph pool or None if not found
+        """
+        output, dump_code = sentry_unit.run("ceph osd dump")
+        if dump_code is not 0:
+            amulet.raise_status(
+                amulet.FAIL,
+                msg="ceph osd dump failed with output: {}".format(
+                    output))
+        for line in output.split('\n'):
+            match = re.search(r"pool\s+\d+\s+'(?P<pool_name>.*)'", line)
+            if match:
+                name = match.group('pool_name')
+                if name == pool_name:
+                    return line
+        return None
+
+    def test_403_cache_tier_actions(self):
+        """Verify that cache tier add/remove works"""
+        u.log.debug("Testing cache tiering")
+
+        sentry_unit = self.ceph0_sentry
+        # Create our backer pool
+        output, code = sentry_unit.run("ceph osd pool create cold 128 128 ")
+        if code is not 0:
+            amulet.raise_status(
+                amulet.FAIL,
+                msg="ceph osd pool create cold failed with output: {}".format(
+                    output))
+
+        # Create our cache pool
+        output, code = sentry_unit.run("ceph osd pool create hot 128 128 ")
+        if code is not 0:
+            amulet.raise_status(
+                amulet.FAIL,
+                msg="ceph osd pool create hot failed with output: {}".format(
+                    output))
+
+        action_id = u.run_action(sentry_unit,
+                                 'create-cache-tier',
+                                 params={
+                                     'backer-pool': 'cold',
+                                     'cache-pool': 'hot',
+                                     'cache-mode': 'writeback'})
+        assert u.wait_on_action(action_id), \
+            "Create cache tier action failed."
+
+        pool_line = self.find_pool(
+            sentry_unit=sentry_unit,
+            pool_name='hot')
+
+        assert "cache_mode writeback" in pool_line, \
+            "cache_mode writeback not found in cache pool"
+        remove_action_id = u.run_action(sentry_unit,
+                                        'remove-cache-tier',
+                                        params={
+                                            'backer-pool': 'cold',
+                                            'cache-pool': 'hot'})
+        assert u.wait_on_action(remove_action_id), \
+            "Remove cache tier action failed"
+        pool_line = self.find_pool(sentry_unit=sentry_unit, pool_name='hot')
+        assert "cache_mode" not in pool_line, \
+            "cache_mode is still enabled on cache pool"
+
     def test_410_ceph_cinder_vol_create(self):
         """Create and confirm a ceph-backed cinder volume, and inspect
         ceph cinder pool object count as the volume is created
@@ -592,5 +662,5 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
 
-    # FYI: No restart check as ceph services do not restart
-    # when charm config changes, unless monitor count increases.
+            # FYI: No restart check as ceph services do not restart
+            # when charm config changes, unless monitor count increases.

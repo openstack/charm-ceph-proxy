@@ -163,7 +163,7 @@ class Pool(object):
         :return: None
         """
         # read-only is easy, writeback is much harder
-        mode = get_cache_mode(cache_pool)
+        mode = get_cache_mode(self.service, cache_pool)
         if mode == 'readonly':
             check_call(['ceph', '--id', self.service, 'osd', 'tier', 'cache-mode', cache_pool, 'none'])
             check_call(['ceph', '--id', self.service, 'osd', 'tier', 'remove', self.name, cache_pool])
@@ -171,7 +171,7 @@ class Pool(object):
         elif mode == 'writeback':
             check_call(['ceph', '--id', self.service, 'osd', 'tier', 'cache-mode', cache_pool, 'forward'])
             # Flush the cache and wait for it to return
-            check_call(['ceph', '--id', self.service, '-p', cache_pool, 'cache-flush-evict-all'])
+            check_call(['rados', '--id', self.service, '-p', cache_pool, 'cache-flush-evict-all'])
             check_call(['ceph', '--id', self.service, 'osd', 'tier', 'remove-overlay', self.name])
             check_call(['ceph', '--id', self.service, 'osd', 'tier', 'remove', self.name, cache_pool])
 

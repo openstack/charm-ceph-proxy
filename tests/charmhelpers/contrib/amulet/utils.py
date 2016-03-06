@@ -781,16 +781,20 @@ class AmuletUtils(object):
         return '[{}-{}]'.format(uuid.uuid4(), time.time())
 
 # amulet juju action helpers:
-    def run_action(self, unit_sentry, action,
+    def run_action(self, unit_sentry, action, params=None,
                    _check_output=subprocess.check_output):
         """Run the named action on a given unit sentry.
 
+        params a dict of parameters to use
         _check_output parameter is used for dependency injection.
 
         @return action_id.
         """
         unit_id = unit_sentry.info["unit_name"]
         command = ["juju", "action", "do", "--format=json", unit_id, action]
+        if params is not None:
+            for key, value in params.iteritems():
+                command.append("{}={}".format(key, value))
         self.log.info("Running command: %s\n" % " ".join(command))
         output = _check_output(command, universal_newlines=True)
         data = json.loads(output)
