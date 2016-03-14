@@ -3,5 +3,6 @@ bin
 .testrepository
 .tox
 *.sw[nop]
+.idea
 *.pyc
 .idea
