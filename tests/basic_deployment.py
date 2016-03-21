@@ -3,6 +3,7 @@
 import amulet
 import re
 import time
+
 from charmhelpers.contrib.openstack.amulet.deployment import (
     OpenStackAmuletDeployment
 )
@@ -30,6 +31,8 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
 
         u.log.info('Waiting on extended status checks...')
         exclude_services = ['mysql']
+
+        # Wait for deployment ready msgs, except exclusions
         self._auto_wait_for_status(exclude_services=exclude_services)
 
         self._initialize_tests()
@@ -79,6 +82,9 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
                            'admin-token': 'ubuntutesting'}
         mysql_config = {'dataset-size': '50%'}
         cinder_config = {'block-device': 'None', 'glance-api-version': '2'}
+
+        # Include a non-existent device as osd-devices is a whitelist,
+        # and this will catch cases where proposals attempt to change that.
         ceph_config = {
             'monitor-count': '3',
             'auth-supported': 'none',
@@ -198,7 +204,6 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             self.cinder_sentry: ['cinder-api',
                                  'cinder-scheduler',
                                  'cinder-volume'],
-            self.ceph_osd_sentry: ['ceph-osd-all'],
         }
 
         if self._get_openstack_release() < self.vivid_kilo:
@@ -211,6 +216,13 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             services[self.ceph0_sentry] = ceph_services
             services[self.ceph1_sentry] = ceph_services
             services[self.ceph2_sentry] = ceph_services
+
+            ceph_osd_services = [
+                'ceph-osd id={}'.format(u.get_ceph_osd_id_cmd(0)),
+                'ceph-osd id={}'.format(u.get_ceph_osd_id_cmd(1))
+            ]
+
+            services[self.ceph_osd_sentry] = ceph_osd_services
 
         ret = u.validate_services_by_name(services)
         if ret:
