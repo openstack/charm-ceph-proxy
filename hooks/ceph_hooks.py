@@ -72,6 +72,7 @@ from ceph_broker import (
     process_requests
 )
 from charmhelpers.contrib.charmsupport import nrpe
+from charmhelpers.contrib.hardening.harden import harden
 
 hooks = Hooks()
 
@@ -269,6 +270,7 @@ def install_upstart_scripts():
 
 
 @hooks.hook('install.real')
+@harden()
 def install():
     execd_preinstall()
     add_source(config('source'), config('key'))
@@ -318,6 +320,7 @@ JOURNAL_ZAPPED = '/var/lib/ceph/journal_zapped'
 
 
 @hooks.hook('config-changed')
+@harden()
 def config_changed():
     if config('prefer-ipv6'):
         assert_charm_supports_ipv6()
@@ -553,6 +556,7 @@ def client_relation_changed():
 
 
 @hooks.hook('upgrade-charm')
+@harden()
 def upgrade_charm():
     emit_cephconf()
     apt_install(packages=filter_installed_packages(ceph.PACKAGES), fatal=True)
@@ -628,6 +632,12 @@ def assess_status():
         # If there's a pending lock for this unit,
         # can i get the lock?
         # reboot the ceph-mon process
+
+
+@hooks.hook('update-status')
+@harden()
+def update_status():
+    log('Updating status.')
 
 
 if __name__ == '__main__':

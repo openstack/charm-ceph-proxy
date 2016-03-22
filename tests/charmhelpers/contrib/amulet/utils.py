@@ -781,8 +781,9 @@ class AmuletUtils(object):
         return '[{}-{}]'.format(uuid.uuid4(), time.time())
 
 # amulet juju action helpers:
-    def run_action(self, unit_sentry, action, params=None,
-                   _check_output=subprocess.check_output):
+    def run_action(self, unit_sentry, action,
+                   _check_output=subprocess.check_output,
+                   params=None):
         """Run the named action on a given unit sentry.
 
         params a dict of parameters to use
