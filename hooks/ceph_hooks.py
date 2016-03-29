@@ -54,7 +54,7 @@ from charmhelpers.payload.execd import execd_preinstall
 from charmhelpers.contrib.openstack.alternatives import install_alternative
 from charmhelpers.contrib.network.ip import (
     get_ipv6_addr,
-    format_ipv6_addr
+    format_ipv6_addr,
 )
 from charmhelpers.core.sysctl import create as create_sysctl
 from charmhelpers.core.templating import render
@@ -294,6 +294,7 @@ def emit_cephconf():
         'ceph_public_network': public_network,
         'ceph_cluster_network': cluster_network,
         'loglevel': config('loglevel'),
+        'dio': str(config('use-direct-io')).lower(),
     }
 
     if config('prefer-ipv6'):
