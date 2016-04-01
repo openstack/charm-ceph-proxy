@@ -421,6 +421,33 @@ def mon_relation():
         ceph.bootstrap_monitor_cluster(leader_get('monitor-secret'))
         ceph.wait_for_bootstrap()
         ceph.wait_for_quorum()
+        # If we can and want to
+        if is_leader() and config('customize-failure-domain'):
+            # But only if the environment supports it
+            if os.environ.get('JUJU_AVAILABILITY_ZONE'):
+                cmds = [
+                    "ceph osd getcrushmap -o /tmp/crush.map",
+                    "crushtool -d /tmp/crush.map| "
+                    "sed 's/step chooseleaf firstn 0 type host/step "
+                    "chooseleaf firstn 0 type rack/' > "
+                    "/tmp/crush.decompiled",
+                    "crushtool -c /tmp/crush.decompiled -o /tmp/crush.map",
+                    "crushtool -i /tmp/crush.map --test",
+                    "ceph osd setcrushmap -i /tmp/crush.map"
+                ]
+                for cmd in cmds:
+                    try:
+                        subprocess.check_call(cmd, shell=True)
+                    except subprocess.CalledProcessError as e:
+                        log("Failed to modify crush map:", level='error')
+                        log("Cmd: {}".format(cmd), level='error')
+                        log("Error: {}".format(e.output), level='error')
+                        break
+            else:
+                log(
+                    "Your Juju environment doesn't"
+                    "have support for Availability Zones"
+                )
         notify_osds()
         notify_radosgws()
         notify_client()

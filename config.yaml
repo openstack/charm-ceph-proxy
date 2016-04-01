@@ -104,6 +104,12 @@ options:
       threads-max to a high value to avoid problems with large numbers (>20)
       of OSDs recovering. very large clusters should set those values even
       higher (e.g. max for kernel.pid_max is 4194303).
+  customize-failure-domain:
+    type: boolean
+    default: false
+    description: |
+      Setting this to true will tell Ceph to replicate across Juju's
+      Availability Zone instead of specifically by host.
   nagios_context:
     type: string
     default: "juju"
