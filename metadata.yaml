@@ -12,6 +12,9 @@ tags:
 peers:
   mon:
     interface: ceph
+extra-bindings:
+  public:
+  cluster:
 provides:
   nrpe-external-master:
     interface: nrpe-external-master

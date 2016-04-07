@@ -3,6 +3,9 @@
 <pydev_property name="org.python.pydev.PYTHON_PROJECT_VERSION">python 2.7</pydev_property>
 <pydev_property name="org.python.pydev.PYTHON_PROJECT_INTERPRETER">Default</pydev_property>
 <pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
-<path>/ceph/hooks</path>
+<path>/ceph-mon/hooks</path>
+<path>/ceph-mon/unit_tests</path>
+<path>/ceph-mon/tests</path>
+<path>/ceph-mon/actions</path>
 </pydev_pathproperty>
 </pydev_project>
