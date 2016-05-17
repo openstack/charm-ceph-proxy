@@ -504,8 +504,25 @@ def osd_relation(relid=None):
         }
         relation_set(relation_id=relid,
                      relation_settings=data)
+        # NOTE: radosgw key provision is gated on presence of OSD
+        #       units so ensure that any deferred hooks are processed
+        notify_radosgws()
     else:
         log('mon cluster not in quorum - deferring fsid provision')
+
+
+def related_osds(num_units=3):
+    '''
+    Determine whether there are OSD units currently related
+
+    @param num_units: The minimum number of units required
+    @return: boolean indicating whether the required number of
+             units where detected.
+    '''
+    for r_id in relation_ids('osd'):
+        if len(related_units(r_id)) >= num_units:
+            return True
+    return False
 
 
 @hooks.hook('radosgw-relation-changed')
@@ -516,8 +533,11 @@ def radosgw_relation(relid=None, unit=None):
     if not unit:
         unit = remote_unit()
 
-    if ceph.is_quorum():
-        log('mon cluster in quorum - providing radosgw with keys')
+    # NOTE: radosgw needs some usage OSD storage, so defer key
+    #       provision until OSD units are detected.
+    if ceph.is_quorum() and related_osds():
+        log('mon cluster in quorum and osds related '
+            '- providing radosgw with keys')
         public_addr = get_public_addr()
         data = {
             'fsid': leader_get('fsid'),
@@ -539,7 +559,7 @@ def radosgw_relation(relid=None, unit=None):
 
         relation_set(relation_id=relid, relation_settings=data)
     else:
-        log('mon cluster not in quorum - deferring key provision')
+        log('mon cluster not in quorum or no osds - deferring key provision')
 
 
 @hooks.hook('client-relation-joined')
