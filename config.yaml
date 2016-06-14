@@ -1,8 +1,4 @@
 options:
-  loglevel:
-    default: 1
-    type: int
-    description: Mon and OSD debug level. Max is 20.
   fsid:
     type: string
     default:
@@ -11,32 +7,22 @@ options:
       .
       This configuration element is mandatory and the service will fail on
       install if it is not provided.
-  auth-supported:
-    type: string
-    default: cephx
-    description: |
-      Which authentication flavour to use.
-      .
-      Valid options are "cephx" and "none".  If "none" is specified,
-      keys will still be created and deployed so that it can be
-      enabled later.
-  monitor-secret:
+  monitor-hosts:
     type: string
     default:
     description: |
-      This value will become the mon. key. To generate a suitable value use:
-      .
-        ceph-authtool /dev/stdout --name=mon. --gen-key
-      .
-      This configuration element is mandatory and the service will fail on
-      install if it is not provided.
-  monitor-count:
-    type: int
-    default: 3
+      Space separated list of existing monitor hosts, in the format
+      {IP / Hostname}:{port} {IP / Hostname}:{port}
+  admin-key:
+    type: string
+    default:
     description: |
-      How many nodes to wait for before trying to create the monitor cluster
-      this number needs to be odd, and more than three is a waste except for
-      very large clusters.
+      Admin cephx key for existing Ceph cluster
+  mon-key:
+    type: string
+    default:
+    description: |
+      Monitor cephx key
   source:
     type: string
     default:
@@ -59,81 +45,3 @@ options:
     description: |
       Key ID to import to the apt keyring to support use with arbitary source
       configuration from outside of Launchpad archives or PPA's.
-  use-syslog:
-    type: boolean
-    default: False
-    description: |
-      If set to True, supporting services will log to syslog.
-  ceph-public-network:
-    type: string
-    default:
-    description: |
-      The IP address and netmask of the public (front-side) network (e.g.,
-      192.168.0.0/24)
-      .
-      If multiple networks are to be used, a space-delimited list of a.b.c.d/x
-      can be provided.
-  ceph-cluster-network:
-    type: string
-    default:
-    description: |
-      The IP address and netmask of the cluster (back-side) network (e.g.,
-      192.168.0.0/24)
-      .
-      If multiple networks are to be used, a space-delimited list of a.b.c.d/x
-      can be provided.
-  prefer-ipv6:
-    type: boolean
-    default: False
-    description: |
-      If True enables IPv6 support. The charm will expect network interfaces
-      to be configured with an IPv6 address. If set to False (default) IPv4
-      is expected.
-
-      NOTE: these charms do not currently support IPv6 privacy extension. In
-      order for this charm to function correctly, the privacy extension must be
-      disabled and a non-temporary address must be configured/available on
-      your network interface.
-  sysctl:
-    type: string
-    default: '{ kernel.pid_max : 2097152, vm.max_map_count : 524288,
-                kernel.threads-max: 2097152 }'
-    description: |
-      YAML-formatted associative array of sysctl key/value pairs to be set
-      persistently. By default we set pid_max, max_map_count and 
-      threads-max to a high value to avoid problems with large numbers (>20)
-      of OSDs recovering. very large clusters should set those values even
-      higher (e.g. max for kernel.pid_max is 4194303).
-  customize-failure-domain:
-    type: boolean
-    default: false
-    description: |
-      Setting this to true will tell Ceph to replicate across Juju's
-      Availability Zone instead of specifically by host.
-  nagios_context:
-    type: string
-    default: "juju"
-    type: string
-    description: |
-      Used by the nrpe-external-master subordinate charm.
-      A string that will be prepended to instance name to set the host name
-      in nagios. So for instance the hostname would be something like:
-          juju-myservice-0
-      If you're running multiple environments with the same services in them
-      this allows you to differentiate between them.
-  nagios_servicegroups:
-    default: ""
-    type: string
-    description: |
-      A comma-separated list of nagios servicegroups.
-      If left empty, the nagios_context will be used as the servicegroup
-  use-direct-io:
-    default: True
-    type: boolean
-    description: Configure use of direct IO for OSD journals.
-  harden:
-    default:
-    type: string
-    description: |
-        Apply system hardening. Supports a space-delimited list of modules
-        to run. Supported modules currently include os, ssh, apache and mysql.
