@@ -115,11 +115,11 @@ def emit_cephconf():
                         charm_ceph_conf, 100)
     keyring = 'ceph.client.admin.keyring'
     keyring_path = '/etc/ceph/' + keyring
-    render(keyring, keyring_path, {'admin_key': config('admin-key')}, perms=0o600)
+    render(keyring, keyring_path, {'admin_key': config('admin-key')}, owner=ceph.ceph_user(), perms=0o600)
 
     keyring = 'keyring'
     keyring_path = '/var/lib/ceph/mon/ceph-' + get_unit_hostname()+ '/' + keyring
-    render('mon.keyring', keyring_path, {'mon_key': config('mon-key')}, perms=0o600)
+    render('mon.keyring', keyring_path, {'admin_key': config('admin-key')}, owner=ceph.ceph_user(), perms=0o600)
 
     notify_radosgws()
     notify_client()

@@ -9,6 +9,9 @@ tags:
   - storage
   - file-servers
   - misc
+extra-bindings:
+  public:
+  cluster:
 provides:
   client:
     interface: ceph-client

@@ -372,7 +372,7 @@ def get_named_key(name, caps=None):
         "-u",
         ceph_user(),
         'ceph',
-        '--name', 'mon.',
+        '--name', 'client.admin',
         '--keyring',
         '/var/lib/ceph/mon/ceph-{}/keyring'.format(
             get_unit_hostname()

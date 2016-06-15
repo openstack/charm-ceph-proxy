@@ -18,11 +18,11 @@ options:
     default:
     description: |
       Admin cephx key for existing Ceph cluster
-  mon-key:
-    type: string
-    default:
-    description: |
-      Monitor cephx key
+  # mon-key:
+  #   type: string
+  #   default:
+  #   description: |
+  #     Monitor cephx key
   source:
     type: string
     default:
