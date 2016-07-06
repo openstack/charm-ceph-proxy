@@ -10,17 +10,10 @@
 
 import glob
 import os
-import random
 import shutil
-import socket
-import subprocess
 import sys
-import uuid
-import time
 
 import ceph
-from charmhelpers.core import host
-from charmhelpers.core import hookenv
 from charmhelpers.core.hookenv import (
     log,
     DEBUG,
@@ -29,21 +22,13 @@ from charmhelpers.core.hookenv import (
     related_units,
     relation_get,
     relation_set,
-    leader_set, leader_get,
-    is_leader,
     remote_unit,
     Hooks, UnregisteredHookError,
     service_name,
-    relations_of_type,
-    status_set,
-    local_unit)
+    status_set,)
 from charmhelpers.core.host import (
-    service_restart,
     mkdir,
-    write_file,
-    rsync,
-    cmp_pkgrevno,
-    service_stop, service_start)
+    cmp_pkgrevno,)
 from charmhelpers.fetch import (
     apt_install,
     apt_update,
@@ -52,17 +37,8 @@ from charmhelpers.fetch import (
 )
 from charmhelpers.payload.execd import execd_preinstall
 from charmhelpers.contrib.openstack.alternatives import install_alternative
-from charmhelpers.contrib.network.ip import (
-    get_ipv6_addr,
-    format_ipv6_addr,
-)
-from charmhelpers.core.sysctl import create as create_sysctl
+
 from charmhelpers.core.templating import render
-from charmhelpers.contrib.storage.linux.ceph import (
-    monitor_key_set,
-    monitor_key_exists,
-    monitor_key_get,
-    get_mon_map)
 
 from ceph_broker import (
     process_requests
@@ -73,7 +49,6 @@ from utils import (
     get_unit_hostname,
 )
 
-from charmhelpers.contrib.charmsupport import nrpe
 from charmhelpers.contrib.hardening.harden import harden
 
 hooks = Hooks()
@@ -115,14 +90,21 @@ def emit_cephconf():
                         charm_ceph_conf, 100)
     keyring = 'ceph.client.admin.keyring'
     keyring_path = '/etc/ceph/' + keyring
-    render(keyring, keyring_path, {'admin_key': config('admin-key')}, owner=ceph.ceph_user(), perms=0o600)
+    ctx = {'admin_key': config('admin-key')}
+    user = ceph.ceph_user()
+    render(keyring, keyring_path, ctx, owner=user, perms=0o600)
 
     keyring = 'keyring'
-    keyring_path = '/var/lib/ceph/mon/ceph-' + get_unit_hostname()+ '/' + keyring
-    render('mon.keyring', keyring_path, {'admin_key': config('admin-key')}, owner=ceph.ceph_user(), perms=0o600)
+    keyring_path = (
+        '/var/lib/ceph/mon/ceph-' +
+        get_unit_hostname() +
+        '/' +
+        keyring)
+    render('mon.keyring', keyring_path, ctx, owner=user, perms=0o600)
 
     notify_radosgws()
     notify_client()
+
 
 @hooks.hook('config-changed')
 @harden()
@@ -234,31 +216,6 @@ def assess_status():
         status_set('active', 'Ready to proxy settings')
     else:
         status_set('blocked', 'Ensure FSID and admin-key are set')
-    # moncount = int(config('monitor-count'))
-    # units = get_peer_units()
-    # # not enough peers and mon_count > 1
-    # if len(units.keys()) < moncount:
-    #     status_set('blocked', 'Insufficient peer units to bootstrap'
-    #                           ' cluster (require {})'.format(moncount))
-    #     return
-
-    # # mon_count > 1, peers, but no ceph-public-address
-    # ready = sum(1 for unit_ready in units.itervalues() if unit_ready)
-    # if ready < moncount:
-    #     status_set('waiting', 'Peer units detected, waiting for addresses')
-    #     return
-
-    # # active - bootstrapped + quorum status check
-    # if ceph.is_bootstrapped() and ceph.is_quorum():
-    #     status_set('active', 'Unit is ready and clustered')
-    # else:
-    #     # Unit should be running and clustered, but no quorum
-    #     # TODO: should this be blocked or waiting?
-    #     status_set('blocked', 'Unit not clustered (no quorum)')
-    #     # If there's a pending lock for this unit,
-    #     # can i get the lock?
-    #     # reboot the ceph-mon process
-    # status_set('active', 'doing some shit maybe?')
 
 
 @hooks.hook('update-status')
