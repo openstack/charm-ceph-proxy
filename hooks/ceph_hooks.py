@@ -74,6 +74,7 @@ def install():
 def emit_cephconf():
 
     cephcontext = {
+        'auth_supported': config('auth-supported'),
         'mon_hosts': config('monitor-hosts'),
         'fsid': config('fsid'),
         'use_syslog': str(config('use-syslog')).lower(),
@@ -147,13 +148,10 @@ def radosgw_relation(relid=None, unit=None):
         settings = relation_get(rid=relid, unit=unit)
         """Process broker request(s)."""
         if 'broker_req' in settings:
-            if ceph.is_leader():
-                rsp = process_requests(settings['broker_req'])
-                unit_id = unit.replace('/', '-')
-                unit_response_key = 'broker-rsp-' + unit_id
-                data[unit_response_key] = rsp
-            else:
-                log("Not leader - ignoring broker request", level=DEBUG)
+            rsp = process_requests(settings['broker_req'])
+            unit_id = unit.replace('/', '-')
+            unit_response_key = 'broker-rsp-' + unit_id
+            data[unit_response_key] = rsp
 
         relation_set(relation_id=relid, relation_settings=data)
     else:

@@ -1,18 +1,16 @@
 # Copyright 2014-2015 Canonical Limited.
 #
-# This file is part of charm-helpers.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# charm-helpers is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3 as
-# published by the Free Software Foundation.
+#  http://www.apache.org/licenses/LICENSE-2.0
 #
-# charm-helpers is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 """Tools for working with the host system"""
 # Copyright 2012 Canonical Ltd.
@@ -176,7 +174,7 @@ def init_is_systemd():
 
 
 def adduser(username, password=None, shell='/bin/bash', system_user=False,
-            primary_group=None, secondary_groups=None):
+            primary_group=None, secondary_groups=None, uid=None, home_dir=None):
     """Add a user to the system.
 
     Will log but otherwise succeed if the user already exists.
@@ -187,15 +185,24 @@ def adduser(username, password=None, shell='/bin/bash', system_user=False,
     :param bool system_user: Whether to create a login or system user
     :param str primary_group: Primary group for user; defaults to username
     :param list secondary_groups: Optional list of additional groups
+    :param int uid: UID for user being created
+    :param str home_dir: Home directory for user
 
     :returns: The password database entry struct, as returned by `pwd.getpwnam`
     """
     try:
         user_info = pwd.getpwnam(username)
         log('user {0} already exists!'.format(username))
+        if uid:
+            user_info = pwd.getpwuid(int(uid))
+            log('user with uid {0} already exists!'.format(uid))
     except KeyError:
         log('creating user {0}'.format(username))
         cmd = ['useradd']
+        if uid:
+            cmd.extend(['--uid', str(uid)])
+        if home_dir:
+            cmd.extend(['--home', str(home_dir)])
         if system_user or password is None:
             cmd.append('--system')
         else:
@@ -230,14 +237,58 @@ def user_exists(username):
     return user_exists
 
 
-def add_group(group_name, system_group=False):
-    """Add a group to the system"""
+def uid_exists(uid):
+    """Check if a uid exists"""
+    try:
+        pwd.getpwuid(uid)
+        uid_exists = True
+    except KeyError:
+        uid_exists = False
+    return uid_exists
+
+
+def group_exists(groupname):
+    """Check if a group exists"""
+    try:
+        grp.getgrnam(groupname)
+        group_exists = True
+    except KeyError:
+        group_exists = False
+    return group_exists
+
+
+def gid_exists(gid):
+    """Check if a gid exists"""
+    try:
+        grp.getgrgid(gid)
+        gid_exists = True
+    except KeyError:
+        gid_exists = False
+    return gid_exists
+
+
+def add_group(group_name, system_group=False, gid=None):
+    """Add a group to the system
+
+    Will log but otherwise succeed if the group already exists.
+
+    :param str group_name: group to create
+    :param bool system_group: Create system group
+    :param int gid: GID for user being created
+
+    :returns: The password database entry struct, as returned by `grp.getgrnam`
+    """
     try:
         group_info = grp.getgrnam(group_name)
         log('group {0} already exists!'.format(group_name))
+        if gid:
+            group_info = grp.getgrgid(gid)
+            log('group with gid {0} already exists!'.format(gid))
     except KeyError:
         log('creating group {0}'.format(group_name))
         cmd = ['addgroup']
+        if gid:
+            cmd.extend(['--gid', str(gid)])
         if system_group:
             cmd.append('--system')
         else:

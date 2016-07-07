@@ -1,18 +1,16 @@
 # Copyright 2014-2015 Canonical Limited.
 #
-# This file is part of charm-helpers.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# charm-helpers is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3 as
-# published by the Free Software Foundation.
+#  http://www.apache.org/licenses/LICENSE-2.0
 #
-# charm-helpers is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 #
 # Copyright 2012 Canonical Ltd.
@@ -40,6 +38,7 @@ from subprocess import (
     CalledProcessError,
 )
 from charmhelpers.core.hookenv import (
+    config,
     local_unit,
     relation_get,
     relation_ids,
@@ -64,6 +63,7 @@ from charmhelpers.fetch import (
 )
 
 from charmhelpers.core.kernel import modprobe
+from charmhelpers.contrib.openstack.utils import config_flags_parser
 
 KEYRING = '/etc/ceph/ceph.client.{}.keyring'
 KEYFILE = '/etc/ceph/ceph.client.{}.key'
@@ -1204,3 +1204,42 @@ def send_request_if_needed(request, relation='ceph'):
         for rid in relation_ids(relation):
             log('Sending request {}'.format(request.request_id), level=DEBUG)
             relation_set(relation_id=rid, broker_req=request.request)
+
+
+class CephConfContext(object):
+    """Ceph config (ceph.conf) context.
+
+    Supports user-provided Ceph configuration settings. Use can provide a
+    dictionary as the value for the config-flags charm option containing
+    Ceph configuration settings keyede by their section in ceph.conf.
+    """
+    def __init__(self, permitted_sections=None):
+        self.permitted_sections = permitted_sections or []
+
+    def __call__(self):
+        conf = config('config-flags')
+        if not conf:
+            return {}
+
+        conf = config_flags_parser(conf)
+        if type(conf) != dict:
+            log("Provided config-flags is not a dictionary - ignoring",
+                level=WARNING)
+            return {}
+
+        permitted = self.permitted_sections
+        if permitted:
+            diff = set(conf.keys()).difference(set(permitted))
+            if diff:
+                log("Config-flags contains invalid keys '%s' - they will be "
+                    "ignored" % (', '.join(diff)), level=WARNING)
+
+        ceph_conf = {}
+        for key in conf:
+            if permitted and key not in permitted:
+                log("Ignoring key '%s'" % key, level=WARNING)
+                continue
+
+            ceph_conf[key] = conf[key]
+
+        return ceph_conf

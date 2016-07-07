@@ -18,11 +18,29 @@ options:
     default:
     description: |
       Admin cephx key for existing Ceph cluster
+  auth-supported:
+    type: string
+    default: cephx
+    description: |
+      Which authentication flavour to use.
+      .
+      Valid options are "cephx" and "none".  If "none" is specified,
+      keys will still be created and deployed so that it can be
+      enabled later.
   # mon-key:
   #   type: string
   #   default:
   #   description: |
   #     Monitor cephx key
+  use-syslog:
+    type: boolean
+    default: False
+    description: |
+      If set to True, supporting services will log to syslog.
+  loglevel:
+    default: 1
+    type: int
+    description: Mon and OSD debug level. Max is 20.
   source:
     type: string
     default:
