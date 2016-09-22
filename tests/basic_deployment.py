@@ -34,6 +34,7 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         self._auto_wait_for_status(exclude_services=exclude_services)
 
         self._configure_proxy()
+        self.d.sentry.wait()
         self._initialize_tests()
         self._auto_wait_for_status()
 
