@@ -51,7 +51,8 @@ from charmhelpers.core.hookenv import (
     relation_set,
     service_name,
     status_set,
-    hook_name
+    hook_name,
+    application_version_set,
 )
 
 from charmhelpers.contrib.storage.linux.lvm import (
@@ -80,7 +81,12 @@ from charmhelpers.core.host import (
     service_resume,
     restart_on_change_helper,
 )
-from charmhelpers.fetch import apt_install, apt_cache, install_remote
+from charmhelpers.fetch import (
+    apt_install,
+    apt_cache,
+    install_remote,
+    get_upstream_version
+)
 from charmhelpers.contrib.storage.linux.utils import is_block_device, zap_disk
 from charmhelpers.contrib.storage.linux.loopback import ensure_loopback_device
 from charmhelpers.contrib.openstack.exceptions import OSContextError
@@ -145,7 +151,7 @@ SWIFT_CODENAMES = OrderedDict([
     ('mitaka',
         ['2.5.0', '2.6.0', '2.7.0']),
     ('newton',
-        ['2.8.0', '2.9.0']),
+        ['2.8.0', '2.9.0', '2.10.0']),
 ])
 
 # >= Liberty version->codename mapping
@@ -212,6 +218,7 @@ GIT_DEFAULT_REPOS = {
     'glance': 'git://github.com/openstack/glance',
     'horizon': 'git://github.com/openstack/horizon',
     'keystone': 'git://github.com/openstack/keystone',
+    'networking-hyperv': 'git://github.com/openstack/networking-hyperv',
     'neutron': 'git://github.com/openstack/neutron',
     'neutron-fwaas': 'git://github.com/openstack/neutron-fwaas',
     'neutron-lbaas': 'git://github.com/openstack/neutron-lbaas',
@@ -761,6 +768,13 @@ def git_default_repos(projects_yaml):
             if service in ['neutron-api', 'neutron-gateway',
                            'neutron-openvswitch']:
                 core_project = 'neutron'
+                if service == 'neutron-api':
+                    repo = {
+                        'name': 'networking-hyperv',
+                        'repository': GIT_DEFAULT_REPOS['networking-hyperv'],
+                        'branch': branch,
+                    }
+                    repos.append(repo)
                 for project in ['neutron-fwaas', 'neutron-lbaas',
                                 'neutron-vpnaas', 'nova']:
                     repo = {
@@ -1881,3 +1895,14 @@ def config_flags_parser(config_flags):
         flags[key.strip(post_strippers)] = value.rstrip(post_strippers)
 
     return flags
+
+
+def os_application_version_set(package):
+    '''Set version of application for Juju 2.0 and later'''
+    application_version = get_upstream_version(package)
+    # NOTE(jamespage) if not able to figure out package version, fallback to
+    #                 openstack codename version detection.
+    if not application_version:
+        application_version_set(os_release(package))
+    else:
+        application_version_set(application_version)
