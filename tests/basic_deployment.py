@@ -76,13 +76,11 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
             'osd-devices': '/dev/vdb /srv/ceph /dev/test-non-existent'
         }
 
-        radosgw_config = {"use-embedded-webserver": True}
         proxy_config = {
             'source': self.source
         }
         configs = {'ceph-mon': ceph_config,
                    'ceph-osd': ceph_osd_config,
-                   'ceph-radosgw': radosgw_config,
                    'ceph-proxy': proxy_config}
         super(CephBasicDeployment, self)._configure_services(configs)
 
