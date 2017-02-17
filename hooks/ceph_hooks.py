@@ -18,6 +18,7 @@ from charmhelpers.core.hookenv import (
     log,
     DEBUG,
     config,
+    is_leader,
     relation_ids,
     related_units,
     relation_get,
@@ -44,11 +45,7 @@ from ceph_broker import (
     process_requests
 )
 
-from utils import (
-    get_public_addr,
-    get_unit_hostname,
-)
-
+from utils import get_unit_hostname
 from charmhelpers.contrib.hardening.harden import harden
 
 hooks = Hooks()
@@ -137,12 +134,12 @@ def radosgw_relation(relid=None, unit=None):
     if ready():
         log('mon cluster in quorum and osds related '
             '- providing radosgw with keys')
-        public_addr = get_public_addr()
+        ceph_addrs = config('monitor-hosts')
         data = {
             'fsid': config('fsid'),
             'radosgw_key': ceph.get_radosgw_key(),
-            'auth': 'cephx',
-            'ceph-public-address': public_addr,
+            'auth': config('auth-supported'),
+            'ceph-public-address': ceph_addrs,
         }
 
         settings = relation_get(rid=relid, unit=unit)
@@ -153,6 +150,7 @@ def radosgw_relation(relid=None, unit=None):
             unit_response_key = 'broker-rsp-' + unit_id
             data[unit_response_key] = rsp
 
+        log('relation_set (%s): %s' % (relid, str(data)), level=DEBUG)
         relation_set(relation_id=relid, relation_settings=data)
     else:
         log('FSID or admin key not provided, please configure them')
@@ -171,10 +169,12 @@ def client_relation_joined(relid=None):
                 service_name = units[0].split('/')[0]
 
         if service_name is not None:
-            public_addr = get_public_addr()
+            ceph_addrs = config('monitor-hosts')
             data = {'key': ceph.get_named_key(service_name),
-                    'auth': 'cephx',
-                    'ceph-public-address': public_addr}
+                    'auth': config('auth-supported'),
+                    'ceph-public-address': ceph_addrs}
+
+            log('relation_set (%s): %s' % (relid, str(data)), level=DEBUG)
             relation_set(relation_id=relid,
                          relation_settings=data)
     else:
@@ -187,7 +187,8 @@ def client_relation_changed():
     if ready():
         settings = relation_get()
         if 'broker_req' in settings:
-            if not ceph.is_leader():
+            # the request is processed only by the leader as reported by juju
+            if not is_leader():
                 log("Not leader - ignoring broker request", level=DEBUG)
             else:
                 rsp = process_requests(settings['broker_req'])
@@ -199,6 +200,7 @@ def client_relation_changed():
                     'broker_rsp': rsp,
                     unit_response_key: rsp,
                 }
+                log('relation_set: %s' % str(data), level=DEBUG)
                 relation_set(relation_settings=data)
     else:
         log('FSID or admin key not provided, please configure them')
