@@ -12,7 +12,7 @@ Your config.yaml needs to provide the  monitor-hosts and fsid options like below
 `config.yaml`:
 ```yaml
 ceph-proxy:
-   monitor-hosts: IP_ADDRESS:PORT IP ADDRESS:PORT
+  monitor-hosts: IP_ADDRESS:PORT IP ADDRESS:PORT
   fsid: FSID
 ```
 
@@ -26,7 +26,7 @@ This charm noes NOT insert itself between the clusters, but merely makes the ext
 
 - Chris MacNaughton <chris.macnaughton@canonical.com>
 
-Report bugs on [Launchpad](http://bugs.launchpad.net/charms/+source/ceph-proxy/+filebug)
+Report bugs on [Launchpad](http://bugs.launchpad.net/charm-ceph-proxy/+filebug)
 
 ## Ceph
 
