@@ -15,19 +15,23 @@ import sys
 from charmhelpers.contrib.storage.linux.utils import (
     is_block_device,
     zap_disk,
-    is_device_mounted)
+    is_device_mounted,
+)
 from charmhelpers.core.host import (
     mkdir,
     chownr,
     service_restart,
     lsb_release,
-    cmp_pkgrevno)
+    cmp_pkgrevno,
+    CompareHostReleases,
+)
 from charmhelpers.core.hookenv import (
     log,
     ERROR,
     cached,
     status_set,
-    WARNING)
+    WARNING,
+)
 from charmhelpers.fetch import (
     apt_cache
 )
@@ -403,7 +407,7 @@ def upgrade_key_caps(key, caps):
 
 @cached
 def systemd():
-    return (lsb_release()['DISTRIB_CODENAME'] >= 'vivid')
+    return CompareHostReleases(lsb_release()['DISTRIB_CODENAME']) >= 'vivid'
 
 
 def bootstrap_monitor_cluster(secret):
