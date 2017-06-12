@@ -1,7 +1,41 @@
 options:
+  loglevel:
+    type: int
+    default: 1
+    description: Mon and OSD debug level. Max is 20.
+  use-syslog:
+    type: boolean
+    default: False
+    description: |
+      Setting this to True will allow supporting services to log to syslog.
+  source:
+    type: string
+    default: ""
+    description: |
+      Repository from which to install. May be one of the following:
+      distro (default), ppa:somecustom/ppa, a deb url sources entry,
+      or a supported Ubuntu Cloud Archive e.g.
+      .
+      cloud:<series>-<openstack-release>
+      cloud:<series>-<openstack-release>/updates
+      cloud:<series>-<openstack-release>/staging
+      cloud:<series>-<openstack-release>/proposed
+      .
+      See https://wiki.ubuntu.com/OpenStack/CloudArchive for info on which
+      cloud archives are available and supported.
+      .
+      NOTE: updating this setting to a source that is known to provide
+      a later version of OpenStack will trigger a software upgrade unless
+      action-managed-upgrade is set to True.
+  key:
+    type: string
+    default: ""
+    description: |
+      Key ID to import to the apt keyring to support use with arbitrary source
+      configuration from outside of Launchpad archives or PPA's.
   fsid:
     type: string
-    default:
+    default: ""
     description: |
       fsid of the ceph cluster. To generate a suitable value use `uuid`
       .
@@ -9,57 +43,19 @@ options:
       install if it is not provided.
   monitor-hosts:
     type: string
-    default:
+    default: ""
     description: |
-      Space separated list of existing monitor hosts, in the format
+      Space-delimited list of existing monitor hosts, in the format
       {IP / Hostname}:{port} {IP / Hostname}:{port}
   admin-key:
     type: string
-    default:
-    description: |
-      Admin cephx key for existing Ceph cluster
+    default: ""
+    description: Admin cephx key for existing Ceph cluster
   auth-supported:
     type: string
     default: cephx
     description: |
       Which authentication flavour to use.
       .
-      Valid options are "cephx" and "none".  If "none" is specified,
-      keys will still be created and deployed so that it can be
-      enabled later.
-  # mon-key:
-  #   type: string
-  #   default:
-  #   description: |
-  #     Monitor cephx key
-  use-syslog:
-    type: boolean
-    default: False
-    description: |
-      If set to True, supporting services will log to syslog.
-  loglevel:
-    default: 1
-    type: int
-    description: Mon and OSD debug level. Max is 20.
-  source:
-    type: string
-    default:
-    description: |
-      Optional configuration to support use of additional sources such as:
-
-        - ppa:myteam/ppa
-        - cloud:trusty-proposed/kilo
-        - http://my.archive.com/ubuntu main
-
-      The last option should be used in conjunction with the key configuration
-      option.
-
-      Note that a minimum ceph version of 0.48.2 is required for use with this
-      charm which is NOT provided by the packages in the main Ubuntu archive
-      for precise but is provided in the Ubuntu cloud archive.
-  key:
-    type: string
-    default:
-    description: |
-      Key ID to import to the apt keyring to support use with arbitary source
-      configuration from outside of Launchpad archives or PPA's.
+      Valid options are "cephx" and "none". If "none" is specified, keys will
+      still be created and deployed so that it can be enabled later.
