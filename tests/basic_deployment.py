@@ -47,7 +47,8 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
            """
         this_service = {'name': 'ceph-proxy'}
         other_services = [{'name': 'ceph-mon', 'units': 3},
-                          {'name': 'ceph-osd', 'units': 3},
+                          {'name': 'ceph-osd', 'units': 3,
+                           'storage': {'osd-devices': 'cinder,10G'}},
                           {'name': 'ceph-radosgw'}]
         super(CephBasicDeployment, self)._add_services(this_service,
                                                        other_services)
@@ -64,16 +65,12 @@ class CephBasicDeployment(OpenStackAmuletDeployment):
         ceph_config = {
             'monitor-count': '3',
             'auth-supported': 'none',
-            'fsid': '6547bd3e-1397-11e2-82e5-53567c8d32dc',
-            'monitor-secret': 'AQCXrnZQwI7KGBAAiPofmKEXKxu5bUzoYLVkbQ==',
         }
 
         # Include a non-existent device as osd-devices is a whitelist,
         # and this will catch cases where proposals attempt to change that.
         ceph_osd_config = {
-            'osd-reformat': True,
-            'ephemeral-unmount': '/mnt',
-            'osd-devices': '/dev/vdb /srv/ceph /dev/test-non-existent'
+            'osd-devices': '/srv/ceph /dev/test-non-existent'
         }
 
         proxy_config = {
