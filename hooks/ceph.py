@@ -11,6 +11,7 @@ import time
 import os
 import re
 import sys
+import collections
 
 from charmhelpers.contrib.storage.linux.utils import (
     is_block_device,
@@ -343,10 +344,11 @@ def get_radosgw_key():
     return get_named_key('radosgw.gateway', _radosgw_caps)
 
 
-_default_caps = {
-    'mon': ['allow rw'],
-    'osd': ['allow rwx']
-}
+_default_caps = collections.OrderedDict([
+    ('mon', ['allow r',
+             'allow command "osd blacklist"']),
+    ('osd', ['allow rwx']),
+])
 
 admin_caps = {
     'mds': ['allow'],
