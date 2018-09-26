@@ -32,6 +32,7 @@ from charmhelpers.core.hookenv import (
     cached,
     status_set,
     WARNING,
+    config,
 )
 from charmhelpers.fetch import (
     apt_cache
@@ -371,14 +372,30 @@ def get_upgrade_key():
     return get_named_key('upgrade-osd', _upgrade_caps)
 
 
+def _config_user_key(name):
+    user_keys_list = config('user-keys')
+    if user_keys_list:
+        for ukpair in user_keys_list.split(' '):
+            uk = ukpair.split(':')
+            if len(uk) == 2:
+                user_type, k = uk
+                t, u = user_type.split('.')
+                if u == name:
+                    return k
+
+
 def get_named_key(name, caps=None):
+    config_user_key = _config_user_key(name)
+    if config_user_key:
+        return config_user_key
+
     caps = caps or _default_caps
     cmd = [
         "sudo",
         "-u",
         ceph_user(),
         'ceph',
-        '--name', 'client.admin',
+        '--name', config('admin-user'),
         '--keyring',
         '/var/lib/ceph/mon/ceph-{}/keyring'.format(
             get_unit_hostname()

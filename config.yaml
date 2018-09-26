@@ -59,3 +59,18 @@ options:
       .
       Valid options are "cephx" and "none". If "none" is specified, keys will
       still be created and deployed so that it can be enabled later.
+  user-keys:
+    type: string
+    default: ""
+    description: |
+      A space-separated list of <username>:<cephx-base64-key> pairs used to
+      lookup authentication keys for a specific user instead of trying to
+      create a user and a key via ceph-mon.
+  admin-user:
+    type: string
+    default: "client.admin"
+    description: |
+      A configurable admin user name. Used for scenarios where pools are
+      pre-created and the user given to charm-ceph-proxy simply needs to
+      check the existence of a given pool and error out if one does not
+      exist. Can be used in conjunction with user-keys.

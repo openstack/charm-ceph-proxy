@@ -86,11 +86,16 @@ def emit_cephconf():
     render('ceph.conf', charm_ceph_conf, cephcontext, perms=0o644)
     install_alternative('ceph.conf', '/etc/ceph/ceph.conf',
                         charm_ceph_conf, 100)
-    keyring = 'ceph.client.admin.keyring'
+
+    keyring_template = 'ceph.keyring'
+    keyring = 'ceph.{}.keyring'.format(config('admin-user'))
     keyring_path = '/etc/ceph/' + keyring
-    ctx = {'admin_key': config('admin-key')}
+    ctx = {
+        'admin_key': config('admin-key'),
+        'admin_user': config('admin-user'),
+    }
     user = ceph.ceph_user()
-    render(keyring, keyring_path, ctx, owner=user, perms=0o600)
+    render(keyring_template, keyring_path, ctx, owner=user, perms=0o600)
 
     keyring = 'keyring'
     keyring_path = (

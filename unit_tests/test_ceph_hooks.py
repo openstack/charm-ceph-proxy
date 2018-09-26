@@ -76,6 +76,7 @@ class TestHooks(test_utils.CharmTestCase):
         self.test_config.set('monitor-hosts', '127.0.0.1:1234')
         self.test_config.set('fsid', 'abc123')
         self.test_config.set('admin-key', 'key123')
+        self.test_config.set('admin-user', 'client.myadmin')
 
         def c(k):
             x = {'radosgw': ['rados:1'],
@@ -105,10 +106,15 @@ class TestHooks(test_utils.CharmTestCase):
                                                     '/etc/ceph/ceph.conf',
                                                     '%s/ceph.conf' % dirname,
                                                     100)
-        keyring = 'ceph.client.admin.keyring'
-        context = {'admin_key': self.test_config.get('admin-key')}
-        self.render.assert_any_call(keyring,
-                                    '/etc/ceph/' + keyring,
+        keyring_template = 'ceph.keyring'
+        keyring_name = 'ceph.{}.keyring'.format(
+            self.test_config.get('admin-user'))
+        context = {
+            'admin_key': self.test_config.get('admin-key'),
+            'admin_user': self.test_config.get('admin-user'),
+        }
+        self.render.assert_any_call(keyring_template,
+                                    '/etc/ceph/' + keyring_name,
                                     context, owner='ceph-user', perms=0o600)
 
         mock_rgw_rel.assert_called_with(relid='rados:1', unit='rados/1')
