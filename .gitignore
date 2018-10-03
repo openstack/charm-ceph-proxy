@@ -1,8 +1,9 @@
 bin
-.idea
 .coverage
 .testrepository
 .tox
 *.sw[nop]
-.idea
 *.pyc
+.unit-state.db
+.stestr
+__pycache__
