@@ -38,6 +38,13 @@ from charmhelpers.fetch import (
 )
 from charmhelpers.payload.execd import execd_preinstall
 from charmhelpers.contrib.openstack.alternatives import install_alternative
+from charmhelpers.contrib.openstack.utils import (
+    clear_unit_paused,
+    clear_unit_upgrading,
+    is_unit_upgrading_set,
+    set_unit_paused,
+    set_unit_upgrading,
+)
 
 from charmhelpers.core.templating import render
 
@@ -217,6 +224,12 @@ def ready():
 
 def assess_status():
     '''Assess status of current unit'''
+    if is_unit_upgrading_set():
+        status_set("blocked",
+                   "Ready for do-release-upgrade and reboot. "
+                   "Set complete when finished.")
+        return
+
     if ready():
         status_set('active', 'Ready to proxy settings')
     else:
@@ -227,6 +240,27 @@ def assess_status():
 @harden()
 def update_status():
     log('Updating status.')
+
+
+@hooks.hook('pre-series-upgrade')
+def pre_series_upgrade():
+    log("Running prepare series upgrade hook", "INFO")
+    # NOTE: The Ceph packages handle the series upgrade gracefully.
+    # In order to indicate the step of the series upgrade process for
+    # administrators and automated scripts, the charm sets the paused and
+    # upgrading states.
+    set_unit_paused()
+    set_unit_upgrading()
+
+
+@hooks.hook('post-series-upgrade')
+def post_series_upgrade():
+    log("Running complete series upgrade hook", "INFO")
+    # In order to indicate the step of the series upgrade process for
+    # administrators and automated scripts, the charm clears the paused and
+    # upgrading states.
+    clear_unit_paused()
+    clear_unit_upgrading()
 
 
 if __name__ == '__main__':
