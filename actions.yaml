@@ -132,7 +132,7 @@ list-erasure-profiles:
   description: List the names of all erasure code profiles
   additionalProperties: false
 list-pools:
-  description: List your cluster’s pools
+  description: List your cluster's pools
   additionalProperties: false
 set-pool-max-bytes:
   description: Set pool quotas for the maximum number of bytes.
@@ -165,7 +165,7 @@ rename-pool:
   required: [pool-name, new-name]
   additionalProperties: false
 pool-statistics:
-  description: Show a pool’s utilization statistics
+  description: Show a pool's utilization statistics
   additionalProperties: false
 snapshot-pool:
   description: Snapshot a pool
