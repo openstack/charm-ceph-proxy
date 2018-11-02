@@ -3,6 +3,7 @@
 # Copyright 2015 Canonical Ltd.
 #
 import json
+import six
 
 from charmhelpers.core.hookenv import (
     log,
@@ -27,6 +28,7 @@ from charmhelpers.contrib.storage.linux.ceph import (
     ReplicatedPool,
 )
 
+
 # This comes from http://docs.ceph.com/docs/master/rados/operations/pools/
 # This should do a decent job of preventing people from passing in bad values.
 # It will give a useful error message
@@ -44,8 +46,8 @@ POOL_KEYS = {
     "write_fadvise_dontneed": [bool],
     "noscrub": [bool],
     "nodeep-scrub": [bool],
-    "hit_set_type": [basestring, ["bloom", "explicit_hash",
-                                  "explicit_object"]],
+    "hit_set_type": [six.string_types, ["bloom", "explicit_hash",
+                                        "explicit_object"]],
     "hit_set_count": [int, [1, 1]],
     "hit_set_period": [int],
     "hit_set_fpp": [float, [0.0, 1.0]],
