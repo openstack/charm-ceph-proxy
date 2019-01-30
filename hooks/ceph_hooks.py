@@ -53,7 +53,6 @@ from ceph_broker import (
 )
 
 from utils import get_unit_hostname
-from charmhelpers.contrib.hardening.harden import harden
 
 hooks = Hooks()
 
@@ -66,17 +65,19 @@ def install_upstart_scripts():
 
 
 @hooks.hook('install.real')
-@harden()
 def install():
     execd_preinstall()
-    add_source(config('source'), config('key'))
-    apt_update(fatal=True)
-    apt_install(packages=ceph.PACKAGES, fatal=True)
+    package_install()
     install_upstart_scripts()
 
 
-def emit_cephconf():
+def package_install():
+    add_source(config('source'), config('key'))
+    apt_update(fatal=True)
+    apt_install(packages=ceph.PACKAGES, fatal=True)
 
+
+def emit_cephconf():
     cephcontext = {
         'auth_supported': config('auth-supported'),
         'mon_hosts': config('monitor-hosts'),
@@ -117,8 +118,11 @@ def emit_cephconf():
 
 
 @hooks.hook('config-changed')
-@harden()
 def config_changed():
+    c = config()
+    if c.previous('source') != config('source') or \
+       c.previous('key') != config('key'):
+        package_install()
     emit_cephconf()
 
 
@@ -237,7 +241,6 @@ def assess_status():
 
 
 @hooks.hook('update-status')
-@harden()
 def update_status():
     log('Updating status.')
 
