@@ -51,8 +51,8 @@ class TestHooks(test_utils.CharmTestCase):
         self.log.side_effect = fake_log
 
     @mock.patch('subprocess.check_output')
-    def test_radosgw_realtion(self, mock_check_output):
-
+    @mock.patch('ceph_hooks.apt_install')
+    def test_radosgw_relation(self, mock_apt_install, mock_check_output):
         settings = {'ceph-public-address': '127.0.0.1:1234 [::1]:4321',
                     'radosgw_key': CEPH_KEY,
                     'auth': 'cephx',
@@ -66,6 +66,7 @@ class TestHooks(test_utils.CharmTestCase):
         hooks.radosgw_relation()
         self.relation_set.assert_called_with(relation_id=None,
                                              relation_settings=settings)
+        mock_apt_install.assert_called_with(packages=[])
 
     @mock.patch('ceph.ceph_user')
     @mock.patch.object(hooks, 'radosgw_relation')
@@ -136,3 +137,32 @@ class TestHooks(test_utils.CharmTestCase):
 
         self.relation_set.assert_called_with(relation_id='client:1',
                                              relation_settings=data)
+
+    @mock.patch('ceph_hooks.emit_cephconf')
+    @mock.patch('ceph_hooks.package_install')
+    def test_config_get_skips_package_update(self,
+                                             mock_package_install,
+                                             mock_emit_cephconf):
+        previous_test_config = test_utils.TestConfig()
+        previous_test_config.set('source', 'distro')
+        previous_test_config.set('key', '')
+        previous = mock.MagicMock().return_value
+        previous.previous.side_effect = lambda x: previous_test_config.get(x)
+        self.config.side_effect = [previous, "distro", ""]
+        hooks.config_changed()
+        mock_package_install.assert_not_called()
+        mock_emit_cephconf.assert_any_call()
+
+    @mock.patch('ceph_hooks.emit_cephconf')
+    @mock.patch('ceph_hooks.package_install')
+    def test_update_apt_source(self, mock_package_install, mock_emit_cephconf):
+
+        previous_test_config = test_utils.TestConfig()
+        previous_test_config.set('source', 'distro')
+        previous_test_config.set('key', '')
+        previous = mock.MagicMock().return_value
+        previous.previous.side_effect = lambda x: previous_test_config.get(x)
+        self.config.side_effect = [previous, "cloud:cosmic-mimic", ""]
+        hooks.config_changed()
+        mock_package_install.assert_called_with()
+        mock_emit_cephconf.assert_called_with()
