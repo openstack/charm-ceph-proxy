@@ -1,9 +1,20 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 __author__ = 'chris'
-import sys
+import os
 from subprocess import check_output, CalledProcessError
+import sys
 
-sys.path.append('hooks')
+_path = os.path.dirname(os.path.realpath(__file__))
+_hooks = os.path.abspath(os.path.join(_path, '../hooks'))
+_root = os.path.abspath(os.path.join(_path, '..'))
+
+
+def _add_path(path):
+    if path not in sys.path:
+        sys.path.insert(1, path)
+
+_add_path(_hooks)
+_add_path(_root)
 
 from charmhelpers.core.hookenv import action_get, log, action_set, action_fail
 
@@ -17,6 +28,6 @@ if __name__ == '__main__':
                             'ls']).decode('UTF-8')
         action_set({'message': out})
     except CalledProcessError as e:
-        log(e)
+        log(str(e))
         action_fail("Listing erasure profiles failed with error: {}".format(
-            e.message))
+            str(e)))

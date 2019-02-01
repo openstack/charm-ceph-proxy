@@ -58,7 +58,7 @@ class TestHooks(test_utils.CharmTestCase):
                     'auth': 'cephx',
                     'fsid': 'some-fsid'}
 
-        mock_check_output.return_value = CEPH_GET_KEY
+        mock_check_output.return_value = CEPH_GET_KEY.encode()
         self.relation_get.return_value = {}
         self.test_config.set('monitor-hosts', settings['ceph-public-address'])
         self.test_config.set('fsid', settings['fsid'])
@@ -123,7 +123,7 @@ class TestHooks(test_utils.CharmTestCase):
 
     @mock.patch('subprocess.check_output')
     def test_client_relation_joined(self, mock_check_output):
-        mock_check_output.return_value = CEPH_GET_KEY
+        mock_check_output.return_value = CEPH_GET_KEY.encode()
         self.test_config.set('monitor-hosts', '127.0.0.1:1234')
         self.test_config.set('fsid', 'abc123')
         self.test_config.set('admin-key', 'some-admin-key')

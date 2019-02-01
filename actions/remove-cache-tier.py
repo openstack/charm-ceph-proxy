@@ -1,8 +1,19 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+import os
 from subprocess import CalledProcessError
 import sys
 
-sys.path.append('hooks')
+_path = os.path.dirname(os.path.realpath(__file__))
+_hooks = os.path.abspath(os.path.join(_path, '../hooks'))
+_root = os.path.abspath(os.path.join(_path, '..'))
+
+
+def _add_path(path):
+    if path not in sys.path:
+        sys.path.insert(1, path)
+
+_add_path(_hooks)
+_add_path(_root)
 
 from charmhelpers.contrib.storage.linux.ceph import Pool, pool_exists
 from charmhelpers.core.hookenv import action_get, log, action_fail
@@ -32,9 +43,9 @@ def delete_cache_tier():
         pool.remove_cache_tier(cache_pool=cache_pool)
     except CalledProcessError as err:
         log("Removing the cache tier failed with message: {}".format(
-            err.message))
+            str(err)))
         action_fail("remove-cache-tier failed. Removing the cache tier failed "
-                    "with message: {}".format(err.message))
+                    "with message: {}".format(str(err)))
 
 
 if __name__ == '__main__':

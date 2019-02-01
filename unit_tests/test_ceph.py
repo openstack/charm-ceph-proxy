@@ -1,3 +1,4 @@
+import collections
 import unittest
 
 import mock
@@ -70,10 +71,8 @@ class CephTestCase(unittest.TestCase):
         expected_key = 'AQCnjmtbuEACMxAA7joUmgLIGI4/3LKkPzUy8g=='
         expected_output = ('[client.testuser]\n        key = {}'
                            .format(expected_key))
-        caps = {
-            'mon': ['allow rw'],
-            'osd': ['allow rwx']
-        }
+        caps = collections.OrderedDict([('mon', ['allow rw']),
+                                        ('osd', ['allow rwx'])])
         ceph_user = 'ceph'
         ceph_proxy_host = 'cephproxy'
         mock_get_unit_hostname.return_value = ceph_proxy_host
@@ -86,7 +85,8 @@ class CephTestCase(unittest.TestCase):
                           '/var/lib/ceph/mon/ceph-{}/keyring'.format(
                               ceph_proxy_host),
                           'auth', 'get-or-create', user_spec, 'mon',
-                          'allow rw', 'osd', 'allow rwx']): expected_output
+                          'allow rw', 'osd', 'allow rwx']): (expected_output
+                                                             .encode('utf-8'))
             }[' '.join(cmd)]
         mock_check_output.side_effect = check_output_side_effect
         mock_config.side_effect = self.empty_config_side_effect
