@@ -45,7 +45,7 @@ LEADER = 'leader'
 PEON = 'peon'
 QUORUM = [LEADER, PEON]
 
-PACKAGES = ['ceph', 'gdisk', 'ntp', 'btrfs-tools', 'python-ceph', 'xfsprogs']
+PACKAGES = ['ceph', 'gdisk', 'ntp', 'btrfs-tools', 'xfsprogs']
 
 
 def ceph_user():
