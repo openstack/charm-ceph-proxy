@@ -1,18 +1,38 @@
-# Bootstrap the model if necessary.
-bootstrap: True
-# Re-use bootstrap node.
-reset: True
-# Use tox/requirements to drive the venv instead of bundletester's venv feature.
-virtualenv: False
-# Leave makefile empty, otherwise unit/lint tests will rerun ahead of amulet.
-makefile: []
-# Do not specify juju PPA sources.  Juju is presumed to be pre-installed
-# and configured in all test runner environments.
-#sources:
-# Do not specify or rely on system packages.
-#packages:
-# Do not specify python packages here.  Use test-requirements.txt
-# and tox instead.  ie. The venv is constructed before bundletester
-# is invoked.
-#python-packages:
-reset_timeout: 600
+configure:
+  - zaza.openstack.configure.ceph_proxy.setup_ceph_proxy
+
+tests:
+  - zaza.openstack.charm_tests.ceph.tests.CephProxyTest
+
+gate_bundles:
+  - trusty-mitaka # jewel
+  - xenial-mitaka # jewel
+  - xenial-queens # luminous
+  - bionic-queens # luminous
+  - bionic-rocky  # mimic
+dev_bundles:
+  # Icehouse
+  - trusty-icehouse
+  - trusty-juno
+  # Hammer
+  - trusty-kilo
+  - trusty-liberty
+  # Jewel
+  - xenial-newton
+  - xenial-ocata
+  # Pike
+  - xenial-pike
+  # Mimic
+  - bionic-stein
+
+smoke_bundles:
+  - bionic-queens
+
+target_deploy_status:
+  ceph-proxy:
+    workload-status: blocked
+    workload-status-message: Ensure FSID and admin-key are set
+  ceph-radosgw:
+    workload-status: blocked
+    workload-status-message: "Missing relations: mon"
+

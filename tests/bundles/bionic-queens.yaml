@@ -1,0 +1,23 @@
+series: bionic
+applications:
+  ceph-mon:
+    charm: 'cs:~openstack-charmers-next/ceph-mon'
+    num_units: 3
+    options:
+      expected-osd-count: 3
+  ceph-osd:
+    charm: 'cs:~openstack-charmers-next/ceph-osd'
+    num_units: 3
+    storage:
+      osd-devices: 10G
+  ceph-proxy:
+    charm: 'ceph-proxy'
+    num_units: 1
+  ceph-radosgw:
+    charm: 'cs:~openstack-charmers-next/ceph-radosgw'
+    num_units: 1
+relations:
+  - - 'ceph-osd:mon'
+    - 'ceph-mon:osd'
+  - - 'ceph-proxy:radosgw'
+    - 'ceph-radosgw:mon'
