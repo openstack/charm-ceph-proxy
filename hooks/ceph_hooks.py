@@ -170,7 +170,7 @@ def radosgw_relation(relid=None, unit=None):
             'ceph-public-address': ceph_addrs,
         }
 
-        settings = relation_get(rid=relid, unit=unit)
+        settings = relation_get(rid=relid, unit=unit) or {}
         """Process broker request(s)."""
         if 'broker_req' in settings:
             rsp = process_requests(settings['broker_req'])
@@ -185,7 +185,7 @@ def radosgw_relation(relid=None, unit=None):
 
 
 @hooks.hook('client-relation-joined')
-def client_relation_joined(relid=None):
+def client_relation_joined(relid=None, unit=None):
     if ready():
         service_name = None
         if relid is None:
@@ -202,6 +202,15 @@ def client_relation_joined(relid=None):
                     'auth': config('auth-supported'),
                     'ceph-public-address': ceph_addrs}
 
+            settings = relation_get(rid=relid, unit=unit) or {}
+            data_update = {}
+            if 'broker_req' in settings:
+                rsp = process_requests(settings['broker_req'])
+                unit_id = unit.replace('/', '-')
+                unit_response_key = 'broker-rsp-' + unit_id
+                data_update[unit_response_key] = rsp
+            data.update(data_update)
+
             log('relation_set (%s): %s' % (relid, str(data)), level=DEBUG)
             relation_set(relation_id=relid,
                          relation_settings=data)
@@ -213,7 +222,7 @@ def client_relation_joined(relid=None):
 def client_relation_changed():
     """Process broker requests from ceph client relations."""
     if ready():
-        settings = relation_get()
+        settings = relation_get() or {}
         if 'broker_req' in settings:
             # the request is processed only by the leader as reported by juju
             if not is_leader():

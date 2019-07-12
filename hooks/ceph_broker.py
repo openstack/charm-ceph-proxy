@@ -2,8 +2,11 @@
 #
 # Copyright 2015 Canonical Ltd.
 #
+import collections
 import json
 import six
+from subprocess import check_call, CalledProcessError
+
 
 from charmhelpers.core.hookenv import (
     log,
@@ -16,6 +19,8 @@ from charmhelpers.contrib.storage.linux.ceph import (
     delete_pool,
     erasure_profile_exists,
     get_osds,
+    monitor_key_get,
+    monitor_key_set,
     pool_exists,
     pool_set,
     remove_pool_snapshot,
@@ -139,18 +144,36 @@ def handle_create_erasure_profile(request, service):
 
 
 def handle_erasure_pool(request, service):
+    """Create a new erasure coded pool.
+
+    :param request: dict of request operations and params.
+    :param service: The ceph client to run the command under.
+    :returns: dict. exit-code and reason if not 0.
+    """
     pool_name = request.get('name')
     erasure_profile = request.get('erasure-profile')
-    quota = request.get('max-bytes')
+    max_bytes = request.get('max-bytes')
+    max_objects = request.get('max-objects')
+    weight = request.get('weight')
+    group_name = request.get('group')
 
     if erasure_profile is None:
         erasure_profile = "default-canonical"
+
+    app_name = request.get('app-name')
 
     # Check for missing params
     if pool_name is None:
         msg = "Missing parameter. name is required for the pool"
         log(msg, level=ERROR)
         return {'exit-code': 1, 'stderr': msg}
+
+    if group_name:
+        group_namespace = request.get('group-namespace')
+        # Add the pool to the group named "group_name"
+        add_pool_to_group(pool=pool_name,
+                          group=group_name,
+                          namespace=group_namespace)
 
     # TODO: Default to 3/2 erasure coding. I believe this requires min 5 osds
     if not erasure_profile_exists(service=service, name=erasure_profile):
@@ -161,23 +184,33 @@ def handle_erasure_pool(request, service):
         return {'exit-code': 1, 'stderr': msg}
 
     pool = ErasurePool(service=service, name=pool_name,
-                       erasure_code_profile=erasure_profile)
+                       erasure_code_profile=erasure_profile,
+                       percent_data=weight, app_name=app_name)
     # Ok make the erasure pool
     if not pool_exists(service=service, name=pool_name):
-        log("Creating pool '%s' (erasure_profile=%s)" % (pool.name,
-                                                         erasure_profile),
-            level=INFO)
+        log("Creating pool '{}' (erasure_profile={})"
+            .format(pool.name, erasure_profile), level=INFO)
         pool.create()
 
     # Set a quota if requested
-    if quota is not None:
-        set_pool_quota(service=service, pool_name=pool_name, max_bytes=quota)
+    if max_bytes or max_objects:
+        set_pool_quota(service=service, pool_name=pool_name,
+                       max_bytes=max_bytes, max_objects=max_objects)
 
 
 def handle_replicated_pool(request, service):
+    """Create a new replicated pool.
+
+    :param request: dict of request operations and params.
+    :param service: The ceph client to run the command under.
+    :returns: dict. exit-code and reason if not 0.
+    """
     pool_name = request.get('name')
     replicas = request.get('replicas')
-    quota = request.get('max-bytes')
+    max_bytes = request.get('max-bytes')
+    max_objects = request.get('max-objects')
+    weight = request.get('weight')
+    group_name = request.get('group')
 
     # Optional params
     pg_num = request.get('pg_num')
@@ -187,27 +220,44 @@ def handle_replicated_pool(request, service):
         if osds:
             pg_num = min(pg_num, (len(osds) * 100 // replicas))
 
+    app_name = request.get('app-name')
     # Check for missing params
     if pool_name is None or replicas is None:
         msg = "Missing parameter. name and replicas are required"
         log(msg, level=ERROR)
         return {'exit-code': 1, 'stderr': msg}
 
+    if group_name:
+        group_namespace = request.get('group-namespace')
+        # Add the pool to the group named "group_name"
+        add_pool_to_group(pool=pool_name,
+                          group=group_name,
+                          namespace=group_namespace)
+
+    kwargs = {}
+    if pg_num:
+        kwargs['pg_num'] = pg_num
+    if weight:
+        kwargs['percent_data'] = weight
+    if replicas:
+        kwargs['replicas'] = replicas
+    if app_name:
+        kwargs['app_name'] = app_name
+
     pool = ReplicatedPool(service=service,
-                          name=pool_name,
-                          replicas=replicas,
-                          pg_num=pg_num)
+                          name=pool_name, **kwargs)
     if not pool_exists(service=service, name=pool_name):
-        log("Creating pool '%s' (replicas=%s)" % (pool.name, replicas),
+        log("Creating pool '{}' (replicas={})".format(pool.name, replicas),
             level=INFO)
         pool.create()
     else:
-        log("Pool '%s' already exists - skipping create" % pool.name,
+        log("Pool '{}' already exists - skipping create".format(pool.name),
             level=DEBUG)
 
     # Set a quota if requested
-    if quota is not None:
-        set_pool_quota(service=service, pool_name=pool_name, max_bytes=quota)
+    if max_bytes or max_objects:
+        set_pool_quota(service=service, pool_name=pool_name,
+                       max_bytes=max_bytes, max_objects=max_objects)
 
 
 def handle_create_cache_tier(request, service):
@@ -270,6 +320,192 @@ def handle_set_pool_value(request, service):
              value=params['value'])
 
 
+def handle_add_permissions_to_key(request, service):
+    """Groups are defined by the key cephx.groups.(namespace-)?-(name). This
+    key will contain a dict serialized to JSON with data about the group,
+    including pools and members.
+
+    A group can optionally have a namespace defined that will be used to
+    further restrict pool access.
+    """
+    resp = {'exit-code': 0}
+
+    service_name = request.get('name')
+    group_name = request.get('group')
+    group_namespace = request.get('group-namespace')
+    if group_namespace:
+        group_name = "{}-{}".format(group_namespace, group_name)
+    group = get_group(group_name=group_name)
+    service_obj = get_service_groups(service=service_name,
+                                     namespace=group_namespace)
+    if request.get('object-prefix-permissions'):
+        service_obj['object_prefix_perms'] = request.get(
+            'object-prefix-permissions')
+    format("Service object: {}".format(service_obj))
+    permission = request.get('group-permission') or "rwx"
+    if service_name not in group['services']:
+        group['services'].append(service_name)
+    save_group(group=group, group_name=group_name)
+    if permission not in service_obj['group_names']:
+        service_obj['group_names'][permission] = []
+    if group_name not in service_obj['group_names'][permission]:
+        service_obj['group_names'][permission].append(group_name)
+    save_service(service=service_obj, service_name=service_name)
+    service_obj['groups'] = _build_service_groups(service_obj,
+                                                  group_namespace)
+    update_service_permissions(service_name, service_obj, group_namespace)
+
+    return resp
+
+
+def add_pool_to_group(pool, group, namespace=None):
+    """Add a named pool to a named group"""
+    group_name = group
+    if namespace:
+        group_name = "{}-{}".format(namespace, group_name)
+    group = get_group(group_name=group_name)
+    if pool not in group['pools']:
+        group["pools"].append(pool)
+    save_group(group, group_name=group_name)
+    for service in group['services']:
+        update_service_permissions(service, namespace=namespace)
+
+
+def pool_permission_list_for_service(service):
+    """Build the permission string for Ceph for a given service"""
+    permissions = []
+    permission_types = collections.OrderedDict()
+    for permission, group in sorted(service["group_names"].items()):
+        if permission not in permission_types:
+            permission_types[permission] = []
+        for item in group:
+            permission_types[permission].append(item)
+    for permission, groups in permission_types.items():
+        permission = "allow {}".format(permission)
+        for group in groups:
+            for pool in service['groups'][group].get('pools', []):
+                permissions.append("{} pool={}".format(permission, pool))
+    for permission, prefixes in sorted(
+            service.get("object_prefix_perms", {}).items()):
+        for prefix in prefixes:
+            permissions.append("allow {} object_prefix {}".format(permission,
+                                                                  prefix))
+    return ['mon', 'allow r, allow command "osd blacklist"',
+            'osd', ', '.join(permissions)]
+
+
+def update_service_permissions(service, service_obj=None, namespace=None):
+    """Update the key permissions for the named client in Ceph"""
+    if not service_obj:
+        service_obj = get_service_groups(service=service, namespace=namespace)
+    permissions = pool_permission_list_for_service(service_obj)
+    call = ['ceph', 'auth', 'caps', 'client.{}'.format(service)] + permissions
+    try:
+        check_call(call)
+    except CalledProcessError as e:
+        log("Error updating key capabilities: {}".format(e))
+
+
+def save_service(service_name, service):
+    """Persist a service in the monitor cluster"""
+    service['groups'] = {}
+    return monitor_key_set(service='admin',
+                           key="cephx.services.{}".format(service_name),
+                           value=json.dumps(service, sort_keys=True))
+
+
+def save_group(group, group_name):
+    """Persist a group in the monitor cluster"""
+    group_key = get_group_key(group_name=group_name)
+    return monitor_key_set(service='admin',
+                           key=group_key,
+                           value=json.dumps(group, sort_keys=True))
+
+
+def get_group(group_name):
+    """A group is a structure to hold data about a named group, structured as:
+    {
+        pools: ['glance'],
+        services: ['nova']
+    }
+    """
+    group_key = get_group_key(group_name=group_name)
+    group_json = monitor_key_get(service='admin', key=group_key)
+    try:
+        group = json.loads(group_json)
+    except (TypeError, ValueError):
+        group = None
+    if not group:
+        group = {
+            'pools': [],
+            'services': []
+        }
+    return group
+
+
+def get_group_key(group_name):
+    """Build group key"""
+    return 'cephx.groups.{}'.format(group_name)
+
+
+def get_service_groups(service, namespace=None):
+    """Services are objects stored with some metadata, they look like (for a
+    service named "nova"):
+    {
+        group_names: {'rwx': ['images']},
+        groups: {}
+    }
+    After populating the group, it looks like:
+    {
+        group_names: {'rwx': ['images']},
+        groups: {
+            'images': {
+                pools: ['glance'],
+                services: ['nova']
+            }
+        }
+    }
+    """
+    service_json = monitor_key_get(service='admin',
+                                   key="cephx.services.{}".format(service))
+    try:
+        service = json.loads(service_json)
+    except (TypeError, ValueError):
+        service = None
+    if service:
+        service['groups'] = _build_service_groups(service, namespace)
+    else:
+        service = {'group_names': {}, 'groups': {}}
+    return service
+
+
+def _build_service_groups(service, namespace=None):
+    """Rebuild the 'groups' dict for a service group
+
+    :returns: dict: dictionary keyed by group name of the following
+                    format:
+
+                    {
+                        'images': {
+                            pools: ['glance'],
+                            services: ['nova', 'glance]
+                         },
+                         'vms':{
+                            pools: ['nova'],
+                            services: ['nova']
+                         }
+                    }
+    """
+    all_groups = {}
+    for groups in service['group_names'].values():
+        for group in groups:
+            name = group
+            if namespace:
+                name = "{}-{}".format(namespace, name)
+            all_groups[group] = get_group(group_name=name)
+    return all_groups
+
+
 def process_requests_v1(reqs):
     """Process v1 requests.
 
@@ -322,6 +558,8 @@ def process_requests_v1(reqs):
                                        snapshot_name=snapshot_name)
         elif op == "set-pool-value":
             ret = handle_set_pool_value(request=req, service=svc)
+        elif op == "add-permissions-to-key":
+            ret = handle_add_permissions_to_key(request=req, service=svc)
         else:
             msg = "Unknown operation '%s'" % op
             log(msg, level=ERROR)

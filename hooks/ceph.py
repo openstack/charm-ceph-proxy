@@ -28,6 +28,7 @@ from charmhelpers.core.host import (
 )
 from charmhelpers.core.hookenv import (
     log,
+    DEBUG,
     ERROR,
     cached,
     status_set,
@@ -386,11 +387,41 @@ def _config_user_key(name):
                     return k
 
 
-def get_named_key(name, caps=None):
-    config_user_key = _config_user_key(name)
-    if config_user_key:
-        return config_user_key
+def get_named_key(name, caps=None, pool_list=None):
+    """Retrieve a specific named cephx key.
 
+    :param name: String Name of key to get.
+    :param pool_list: The list of pools to give access to
+    :param caps: dict of cephx capabilities
+    :returns: Returns a cephx key
+    """
+    key_name = 'client.{}'.format(name)
+    try:
+        # Does the key already exist?
+        output = str(subprocess.check_output(
+            [
+                'sudo',
+                '-u', ceph_user(),
+                'ceph',
+                '--name', config('admin-user'),
+                '--keyring',
+                '/var/lib/ceph/mon/ceph-{}/keyring'.format(
+                    get_unit_hostname()
+                ),
+                'auth',
+                'get',
+                key_name,
+            ]).decode('UTF-8')).strip()
+        # NOTE(jamespage);
+        # Apply any changes to key capabilities, dealing with
+        # upgrades which requires new caps for operation.
+        upgrade_key_caps(key_name,
+                         caps or _default_caps,
+                         pool_list)
+        return parse_key(output)
+    except subprocess.CalledProcessError:
+        # Couldn't get the key, time to create it!
+        log("Creating new key for {}".format(name), level=DEBUG)
     caps = caps or _default_caps
     cmd = [
         "sudo",
@@ -402,21 +433,26 @@ def get_named_key(name, caps=None):
         '/var/lib/ceph/mon/ceph-{}/keyring'.format(
             get_unit_hostname()
         ),
-        'auth', 'get-or-create', 'client.{}'.format(name),
+        'auth', 'get-or-create', key_name,
     ]
     # Add capabilities
     for subsystem, subcaps in caps.items():
-        cmd.extend([
-            subsystem,
-            '; '.join(subcaps),
-        ])
-    return parse_key(subprocess
-                     .check_output(cmd)
-                     .decode('utf-8')
+        if subsystem == 'osd':
+            if pool_list:
+                # This will output a string similar to:
+                # "pool=rgw pool=rbd pool=something"
+                pools = " ".join(['pool={0}'.format(i) for i in pool_list])
+                subcaps[0] = subcaps[0] + " " + pools
+        cmd.extend([subsystem, '; '.join(subcaps)])
+
+    log("Calling check_output: {}".format(cmd), level=DEBUG)
+    return parse_key(str(subprocess
+                         .check_output(cmd)
+                         .decode('UTF-8'))
                      .strip())  # IGNORE:E1103
 
 
-def upgrade_key_caps(key, caps):
+def upgrade_key_caps(key, caps, pool_list=None):
     """ Upgrade key to have capabilities caps """
     if not is_leader():
         # Not the MON leader OR not clustered
@@ -425,6 +461,12 @@ def upgrade_key_caps(key, caps):
         "sudo", "-u", ceph_user(), 'ceph', 'auth', 'caps', key
     ]
     for subsystem, subcaps in caps.items():
+        if subsystem == 'osd':
+            if pool_list:
+                # This will output a string similar to:
+                # "pool=rgw pool=rbd pool=something"
+                pools = " ".join(['pool={0}'.format(i) for i in pool_list])
+                subcaps[0] = subcaps[0] + " " + pools
         cmd.extend([subsystem, '; '.join(subcaps)])
     subprocess.check_call(cmd)
 

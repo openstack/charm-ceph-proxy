@@ -121,7 +121,6 @@ class CephBrokerTestCase(unittest.TestCase):
         mock_pool_exists.assert_called_with(service='admin', name='foo')
         mock_replicated_pool.assert_called_with(service='admin',
                                                 name='foo',
-                                                pg_num=None,
                                                 replicas=3)
         self.assertEqual(json.loads(rc)['exit-code'], 0)
         self.assertEqual(json.loads(rc)['request-id'], '1ef5aede')
