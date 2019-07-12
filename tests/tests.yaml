@@ -26,7 +26,7 @@ dev_bundles:
   - bionic-stein
 
 smoke_bundles:
-  - bionic-queens
+  - bionic-stein
 
 target_deploy_status:
   ceph-proxy:
