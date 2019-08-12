@@ -1,12 +1,12 @@
 series: trusty
 applications:
   ceph-mon:
-    charm: 'cs:~openstack-charmers-next/ceph-mon'
+    charm: 'cs:ceph-mon'
     num_units: 3
     options:
       expected-osd-count: 3
   ceph-osd:
-    charm: 'cs:~openstack-charmers-next/ceph-osd'
+    charm: 'cs:ceph-osd'
     num_units: 3
     storage:
       osd-devices: 10G
@@ -16,7 +16,7 @@ applications:
     num_units: 1
     options:
   ceph-radosgw:
-    charm: 'cs:~openstack-charmers-next/ceph-radosgw'
+    charm: 'cs:ceph-radosgw'
     num_units: 1
     options:
 relations:
