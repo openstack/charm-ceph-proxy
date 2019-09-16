@@ -23,8 +23,54 @@ applications:
     num_units: 1
     options:
       source: xenial-pike
+  cinder:
+    charm: 'cs:~openstack-charmers-next/cinder'
+    num_units: 1
+    options:
+      block-device: ""
+      ephemeral-unmount: ""
+      glance-api-version: 2
+      overwrite: "false"
+    constraints: mem=2048
+  cinder-ceph:
+    charm: 'cs:~openstack-charmers-next/cinder-ceph'
+    options:
+      restrict-ceph-pools: True
+  keystone:
+    charm: 'cs:~openstack-charmers-next/keystone'
+    num_units: 1
+    options:
+      admin-password: openstack
+      admin-token: ubuntutesting
+    constraints: mem=1024
+  percona-cluster:
+    charm: 'cs:~openstack-charmers-next/percona-cluster'
+    num_units: 1
+    options:
+      dataset-size: 50%
+      max-connections: 1000
+      innodb-buffer-pool-size: 256M
+      root-password: ChangeMe123
+      sst-password: ChangeMe123
+    constraints: mem=4096
+  rabbitmq-server:
+    charm: 'cs:~openstack-charmers-next/rabbitmq-server'
+    num_units: 1
+    constraints: mem=1024
 relations:
   - - 'ceph-osd:mon'
     - 'ceph-mon:osd'
   - - 'ceph-proxy:radosgw'
     - 'ceph-radosgw:mon'
+  - - 'cinder:amqp'
+    - 'rabbitmq-server:amqp'
+  - - 'cinder:shared-db'
+    - 'percona-cluster:shared-db'
+  - - 'keystone:shared-db'
+    - 'percona-cluster:shared-db'
+  - - 'cinder:identity-service'
+    - 'keystone:identity-service'
+  - - 'cinder-ceph:storage-backend'
+    - 'cinder:storage-backend'
+  - - 'cinder-ceph:ceph'
+    - 'ceph-proxy:client'
