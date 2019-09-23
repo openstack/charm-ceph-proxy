@@ -1,3 +1,4 @@
+charm_name: ceph-proxy
 configure:
   - zaza.openstack.configure.ceph_proxy.setup_ceph_proxy
 
