@@ -10,5 +10,5 @@ requests>=2.18.4
 # NOTE: workaround for 14.04 pip/tox
 pytz
 pyudev  # for ceph-* charm unit tests (not mocked?)
-git+https://github.com/openstack-charmers/zaza.git@remove-namespaced-tests#egg=zaza;python_version>='3.0'
+git+https://github.com/openstack-charmers/zaza.git#egg=zaza;python_version>='3.0'
 git+https://github.com/openstack-charmers/zaza-openstack-tests.git#egg=zaza.openstack;python_version>='3.0'
