@@ -49,9 +49,12 @@ class CephTestCase(unittest.TestCase):
         named_key = ceph._config_user_key(user_name)
         self.assertEqual(named_key, None)
 
+    @mock.patch.object(ceph, 'ceph_user')
     @mock.patch('subprocess.check_output')
     @mock.patch('ceph.config')
-    def test_get_named_key_new(self, mock_config, mock_check_output):
+    def test_get_named_key_new(self, mock_config, mock_check_output,
+                               mock_ceph_user):
+        mock_ceph_user.return_value = 'ceph'
         user_name = 'cinder-ceph'
         expected_key = 'AQCnjmtbuEACMxAA7joUmgLIGI4/3LKkPzUy8g=='
         expected_output = ('[client.testuser]\n        key = {}'

@@ -15,30 +15,37 @@ def check_ceph_status(args):
         nagios_plugin.check_file_freshness(args.status_file, 3600)
         with open(args.status_file, "r") as f:
             lines = f.readlines()
-            status_data = dict(l.strip().split(' ', 1) for l in lines if len(l) > 1)
+            status_data = dict(
+                l.strip().split(' ', 1) for l in lines if len(l) > 1
+            )
     else:
         lines = subprocess.check_output(["ceph", "status"]).split('\n')
-        status_data = dict(l.strip().split(' ', 1) for l in lines if len(l) > 1)
+        status_data = dict(
+            l.strip().split(' ', 1) for l in lines if len(l) > 1
+        )
 
-    if ('health' not in status_data
-            or 'monmap' not in status_data
-            or 'osdmap'not in status_data):
+    if ('health' not in status_data or
+            'monmap' not in status_data or
+            'osdmap'not in status_data):
         raise nagios_plugin.UnknownError('UNKNOWN: status data is incomplete')
 
     if status_data['health'] != 'HEALTH_OK':
-        msg = 'CRITICAL: ceph health status: "{}"'.format(status_data['health'])
+        msg = 'CRITICAL: ceph health status: "{}"'.format(
+            status_data['health'])
         raise nagios_plugin.CriticalError(msg)
-    osds = re.search("^.*: (\d+) osds: (\d+) up, (\d+) in", status_data['osdmap'])
+    osds = re.search("^.*: (\d+) osds: (\d+) up, (\d+) in",
+                     status_data['osdmap'])
     if osds.group(1) > osds.group(2):  # not all OSDs are "up"
         msg = 'CRITICAL: Some OSDs are not up. Total: {}, up: {}'.format(
             osds.group(1), osds.group(2))
         raise nagios_plugin.CriticalError(msg)
-    print "All OK"
+    print("All OK")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Check ceph status')
     parser.add_argument('-f', '--file', dest='status_file',
-                        default=False, help='Optional file with "ceph status" output')
+                        default=False,
+                        help='Optional file with "ceph status" output')
     args = parser.parse_args()
     nagios_plugin.try_check(check_ceph_status, args)

@@ -50,9 +50,14 @@ class TestHooks(test_utils.CharmTestCase):
         self.remote_unit.return_value = 'client/0'
         self.log.side_effect = fake_log
 
+    @mock.patch.object(hooks.ceph, 'ceph_user')
+    @mock.patch.object(hooks, 'filter_installed_packages')
     @mock.patch('subprocess.check_output')
     @mock.patch('ceph_hooks.apt_install')
-    def test_radosgw_relation(self, mock_apt_install, mock_check_output):
+    def test_radosgw_relation(self, mock_apt_install, mock_check_output,
+                              mock_filter_installed_packages, mock_ceph_user):
+        mock_filter_installed_packages.return_value = []
+        mock_ceph_user.return_value = 'ceph'
         settings = {'ceph-public-address': '127.0.0.1:1234 [::1]:4321',
                     'radosgw_key': CEPH_KEY,
                     'auth': 'cephx',
@@ -121,9 +126,11 @@ class TestHooks(test_utils.CharmTestCase):
         mock_rgw_rel.assert_called_with(relid='rados:1', unit='rados/1')
         mock_client_rel.assert_called_with('client:1')
 
+    @mock.patch.object(hooks.ceph, 'ceph_user')
     @mock.patch('subprocess.check_output')
-    def test_client_relation_joined(self, mock_check_output):
+    def test_client_relation_joined(self, mock_check_output, mock_ceph_user):
         mock_check_output.return_value = CEPH_GET_KEY.encode()
+        mock_ceph_user.return_value = 'ceph'
         self.test_config.set('monitor-hosts', '127.0.0.1:1234')
         self.test_config.set('fsid', 'abc123')
         self.test_config.set('admin-key', 'some-admin-key')

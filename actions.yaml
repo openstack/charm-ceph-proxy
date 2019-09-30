@@ -43,7 +43,7 @@ remove-cache-tier:
 create-pool:
   description: Creates a pool
   params:
-    name: 
+    name:
       type: string
       description: The name of the pool
     profile-name:

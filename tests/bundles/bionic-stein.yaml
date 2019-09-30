@@ -27,6 +27,7 @@ applications:
     charm: 'cs:~openstack-charmers-next/cinder'
     num_units: 1
     options:
+      openstack-origin: cloud:bionic-stein
       block-device: ""
       ephemeral-unmount: ""
       glance-api-version: 2
@@ -40,6 +41,7 @@ applications:
     charm: 'cs:~openstack-charmers-next/keystone'
     num_units: 1
     options:
+      openstack-origin: cloud:bionic-stein
       admin-password: openstack
       admin-token: ubuntutesting
     constraints: mem=1024
@@ -47,6 +49,7 @@ applications:
     charm: 'cs:~openstack-charmers-next/percona-cluster'
     num_units: 1
     options:
+      source: cloud:bionic-stein
       dataset-size: 50%
       max-connections: 1000
       innodb-buffer-pool-size: 256M
@@ -57,6 +60,8 @@ applications:
     charm: 'cs:~openstack-charmers-next/rabbitmq-server'
     num_units: 1
     constraints: mem=1024
+    options:
+      source: cloud:bionic-stein
 relations:
   - - 'ceph-osd:mon'
     - 'ceph-mon:osd'
