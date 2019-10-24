@@ -12,6 +12,7 @@ gate_bundles:
   - bionic-queens # luminous
   - bionic-rocky  # mimic
   - bionic-stein
+  - bionic-train
   - disco-stein
 dev_bundles:
   # Icehouse
@@ -26,7 +27,7 @@ dev_bundles:
   # Pike
   - xenial-pike
 smoke_bundles:
-  - bionic-stein
+  - bionic-train
 
 target_deploy_status:
   ceph-proxy:
