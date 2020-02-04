@@ -13,7 +13,6 @@ gate_bundles:
   - bionic-rocky  # mimic
   - bionic-stein
   - bionic-train
-  - disco-stein
 dev_bundles:
   # Icehouse
   - trusty-icehouse
