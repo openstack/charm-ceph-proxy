@@ -146,7 +146,8 @@ def notify_radosgws():
 
 def notify_client():
     for relid in relation_ids('client'):
-        client_relation_joined(relid)
+        for unit in related_units(relid):
+            client_relation_joined(relid=relid, unit=unit)
 
 
 @hooks.hook('radosgw-relation-changed')
@@ -195,7 +196,8 @@ def client_relation_joined(relid=None, unit=None):
             units = related_units(relid)
             if len(units) > 0:
                 service_name = units[0].split('/')[0]
-
+        if unit is None:
+            unit = units[0]
         if service_name is not None:
             ceph_addrs = config('monitor-hosts')
             data = {'key': ceph.get_named_key(service_name),

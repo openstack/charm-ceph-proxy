@@ -87,7 +87,9 @@ class TestHooks(test_utils.CharmTestCase):
         def c(k):
             x = {'radosgw': ['rados:1'],
                  'client': ['client:1'],
-                 'rados:1': ['rados/1']}
+                 'rados:1': ['rados/1'],
+                 'client:1': ['client/1'],
+                 }
             return x[k]
 
         self.relation_ids.side_effect = c
@@ -124,7 +126,7 @@ class TestHooks(test_utils.CharmTestCase):
                                     context, owner='ceph-user', perms=0o600)
 
         mock_rgw_rel.assert_called_with(relid='rados:1', unit='rados/1')
-        mock_client_rel.assert_called_with('client:1')
+        mock_client_rel.assert_called_with(relid='client:1', unit='client/1')
 
     @mock.patch.object(hooks.ceph, 'ceph_user')
     @mock.patch('subprocess.check_output')
