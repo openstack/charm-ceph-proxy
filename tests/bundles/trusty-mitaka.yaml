@@ -1,13 +1,13 @@
 series: trusty
 applications:
   ceph-mon:
-    charm: 'cs:~openstack-charmers-next/ceph-mon'
+    charm: 'cs:ceph-mon'
     num_units: 3
     options:
       expected-osd-count: 3
       source: cloud:trusty-mitaka
   ceph-osd:
-    charm: 'cs:~openstack-charmers-next/ceph-osd'
+    charm: 'cs:ceph-osd'
     num_units: 3
     storage:
       osd-devices: 10G
@@ -19,12 +19,12 @@ applications:
     options:
       source: cloud:trusty-mitaka
   ceph-radosgw:
-    charm: 'cs:~openstack-charmers-next/ceph-radosgw'
+    charm: 'cs:ceph-radosgw'
     num_units: 1
     options:
       source: trusty-mitaka
   cinder:
-    charm: 'cs:~openstack-charmers-next/cinder'
+    charm: 'cs:cinder'
     num_units: 1
     options:
       openstack-origin: cloud:trusty-mitaka
@@ -34,11 +34,11 @@ applications:
       overwrite: "false"
     constraints: mem=2048
   cinder-ceph:
-    charm: 'cs:~openstack-charmers-next/cinder-ceph'
+    charm: 'cs:cinder-ceph'
     options:
       restrict-ceph-pools: True
   keystone:
-    charm: 'cs:~openstack-charmers-next/keystone'
+    charm: 'cs:keystone'
     num_units: 1
     options:
       admin-password: openstack
@@ -57,7 +57,7 @@ applications:
       sst-password: ChangeMe123
     constraints: mem=4096
   rabbitmq-server:
-    charm: 'cs:~openstack-charmers-next/rabbitmq-server'
+    charm: 'cs:rabbitmq-server'
     num_units: 1
     constraints: mem=1024
     options:
