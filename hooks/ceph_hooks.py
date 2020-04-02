@@ -40,8 +40,11 @@ from charmhelpers.core.hookenv import (
     service_name,
     status_set,)
 from charmhelpers.core.host import (
+    cmp_pkgrevno,
+    CompareHostReleases,
+    lsb_release,
     mkdir,
-    cmp_pkgrevno,)
+)
 from charmhelpers.fetch import (
     apt_install,
     apt_update,
@@ -86,7 +89,12 @@ def install():
 def package_install():
     add_source(config('source'), config('key'))
     apt_update(fatal=True)
-    apt_install(packages=ceph.PACKAGES, fatal=True)
+    _release = lsb_release()['DISTRIB_CODENAME'].lower()
+    if CompareHostReleases(_release) >= "focal":
+        _packages = ceph.PACKAGES_FOCAL
+    else:
+        _packages = ceph.PACKAGES
+    apt_install(packages=_packages, fatal=True)
 
 
 def emit_cephconf():
