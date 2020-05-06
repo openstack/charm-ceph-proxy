@@ -12,11 +12,14 @@ include:
         - lvm
     - payload.execd
     - contrib.openstack:
-        - utils
-        - exceptions
         - alternatives
+        - exceptions
+        - ha
+        - ip
+        - utils
     - contrib.network.ip
     - contrib.charmsupport
     - contrib.hardening|inc=*
     - contrib.python
     - contrib.openstack.policyd
+    - contrib.hahelpers

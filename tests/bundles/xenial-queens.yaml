@@ -42,8 +42,6 @@ applications:
     num_units: 1
     options:
       openstack-origin: cloud:xenial-queens
-      admin-password: openstack
-      admin-token: ubuntutesting
     constraints: mem=1024
   percona-cluster:
     charm: 'cs:~openstack-charmers-next/percona-cluster'
