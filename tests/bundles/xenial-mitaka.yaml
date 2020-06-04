@@ -32,6 +32,12 @@ applications:
     charm: 'cs:~openstack-charmers-next/cinder-ceph'
     options:
       restrict-ceph-pools: True
+  glance:
+    charm: cs:~openstack-charmers-next/glance
+    num_units: 1
+  nova-compute:
+    charm: cs:~openstack-charmers-next/nova-compute
+    num_units: 1
   keystone:
     charm: 'cs:~openstack-charmers-next/keystone'
     num_units: 1
@@ -67,3 +73,13 @@ relations:
     - 'cinder:storage-backend'
   - - 'cinder-ceph:ceph'
     - 'ceph-proxy:client'
+  - - 'glance:image-service'
+    - 'nova-compute:image-service'
+  - - 'glance:identity-service'
+    - 'keystone:identity-service'
+  - - 'glance:shared-db'
+    - 'percona-cluster:shared-db'
+  - - 'nova-compute:ceph-access'
+    - 'cinder-ceph:ceph-access'
+  - - 'nova-compute:amqp'
+    - 'rabbitmq-server:amqp'

@@ -44,6 +44,16 @@ applications:
       openstack-origin: cloud:bionic-ussuri
       admin-password: openstack
     constraints: mem=1024
+  glance:
+    charm: cs:~openstack-charmers-next/glance
+    num_units: 1
+    options:
+      openstack-origin: cloud:bionic-ussuri
+  nova-compute:
+    charm: cs:~openstack-charmers-next/nova-compute
+    num_units: 1
+    options:
+      openstack-origin: cloud:bionic-ussuri
   percona-cluster:
     charm: 'cs:~openstack-charmers-next/percona-cluster'
     num_units: 1
@@ -78,3 +88,13 @@ relations:
     - 'cinder:storage-backend'
   - - 'cinder-ceph:ceph'
     - 'ceph-proxy:client'
+  - - 'glance:image-service'
+    - 'nova-compute:image-service'
+  - - 'glance:identity-service'
+    - 'keystone:identity-service'
+  - - 'glance:shared-db'
+    - 'percona-cluster:shared-db'
+  - - 'nova-compute:ceph-access'
+    - 'cinder-ceph:ceph-access'
+  - - 'nova-compute:amqp'
+    - 'rabbitmq-server:amqp'

@@ -19,12 +19,7 @@ gate_bundles:
 dev_bundles:
   # Icehouse
   - trusty-icehouse
-  - trusty-juno
-  # Hammer
-  - trusty-kilo
-  - trusty-liberty
   # Jewel
-  - xenial-newton
   - xenial-ocata
   # Pike
   - xenial-pike
@@ -36,8 +31,8 @@ target_deploy_status:
     workload-status: blocked
     workload-status-message: Ensure FSID and admin-key are set
   ceph-radosgw:
-    workload-status: blocked
-    workload-status-message: "Missing relations: mon"
+    workload-status: waiting
+    workload-status-message: "Incomplete relations: mon"
   cinder-ceph:
     workload-status: waiting
     workload-status-message: "Incomplete relations: ceph"

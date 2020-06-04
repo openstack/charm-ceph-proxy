@@ -33,6 +33,21 @@ applications:
       glance-api-version: 2
       overwrite: "false"
     constraints: mem=2048
+  glance:
+    charm: cs:~openstack-charmers-next/glance
+    num_units: 1
+    options:
+      openstack-origin: cloud:trusty-mitaka
+  nova-compute:
+    charm: cs:~openstack-charmers-next/nova-compute
+    num_units: 1
+    options:
+      openstack-origin: cloud:trusty-mitaka
+  nova-cloud-controller:
+    charm: cs:~openstack-charmers-next/nova-cloud-controller
+    num_units: 1
+    options:
+      openstack-origin: cloud:trusty-mitaka
   cinder-ceph:
     charm: 'cs:~openstack-charmers-next/cinder-ceph'
     options:
@@ -77,3 +92,24 @@ relations:
     - 'cinder:storage-backend'
   - - 'cinder-ceph:ceph'
     - 'ceph-proxy:client'
+  - - 'glance:image-service'
+    - 'nova-compute:image-service'
+  - - 'glance:identity-service'
+    - 'keystone:identity-service'
+  - - 'glance:shared-db'
+    - 'percona-cluster:shared-db'
+  - - 'nova-compute:ceph-access'
+    - 'cinder-ceph:ceph-access'
+  - - 'nova-compute:amqp'
+    - 'rabbitmq-server:amqp'
+  - - 'glance:image-service'
+    - 'nova-cloud-controller:image-service'
+  - - 'keystone:identity-service'
+    - 'nova-cloud-controller:identity-service'
+  - - 'nova-compute:cloud-compute'
+    - 'nova-cloud-controller:cloud-compute'
+  - - 'percona-cluster:shared-db'
+    - 'nova-cloud-controller:shared-db'
+  - - 'rabbitmq-server:amqp'
+    - 'nova-cloud-controller:amqp'
+
