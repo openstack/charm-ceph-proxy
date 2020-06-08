@@ -2,7 +2,7 @@ import collections
 import subprocess
 import unittest
 
-import mock
+from unittest import mock
 
 import ceph
 

@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 import sys
 
 # python-apt is not installed as part of test-requirements but is imported by
