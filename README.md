@@ -1,35 +1,74 @@
 # Overview
 
-Ceph is a distributed storage and network file system designed to provide
+[Ceph][ceph-upstream] is a unified, distributed storage system designed for
 excellent performance, reliability, and scalability.
 
-This charm allows connecting an existing Ceph deployment with a Juju environment.
+The ceph-proxy charm deploys a proxy that acts as a [ceph-mon][ceph-mon-charm]
+application for an external Ceph cluster. It joins a non-charmed Ceph cluster
+to a Juju model.
 
 # Usage
 
-Your config.yaml needs to provide the  monitor-hosts and fsid options like below:
+## Configuration
 
-`config.yaml`:
+This section covers common and/or important configuration options. See file
+`config.yaml` for the full list of options, along with their descriptions and
+default values. See the [Juju documentation][juju-docs-config-apps] for details
+on configuring applications.
+
+#### `fsid`
+
+The `fsid` option supplies the UUID of the external cluster.
+
+#### `admin-key`
+
+The `admin-key` option supplies the admin Cephx key of the external cluster.
+
+#### `monitor-hosts`
+
+The `monitor-hosts` option supplies the network addresses (and ports) of the
+Monitors of the external cluster.
+
+## Deployment
+
+Let file ``ceph-proxy.yaml`` contain the deployment configuration:
+
 ```yaml
-ceph-proxy:
-  monitor-hosts: IP_ADDRESS:PORT IP ADDRESS:PORT
-  fsid: FSID
+    ceph-proxy:
+        fsid: a4f1fb08-c83d-11ea-8f4a-635b3b062931
+        admin-key: AQCJvBFfWX+GLhAAln5dFd1rZekcGLyMmy58bQ==
+        monitor-hosts: '10.246.114.21:6789 10.246.114.22:6789 10.246.114.7:6789'
 ```
 
-You must then provide this configuration to the new deployment: `juju deploy ceph-proxy -c config.yaml`.
+To deploy:
 
-This charm noes NOT insert itself between the clusters, but merely makes the external cluster available through Juju's environment by exposing the same relations that the existing ceph charms do.
+    juju deploy --config ceph-proxy.yaml ceph-proxy
 
-# Contact Information
+Now add relations as you normally would between a ceph-mon application and
+another application, except substitute ceph-proxy for ceph-mon. For instance,
+to use the external Ceph cluster as the backend for an existing glance
+application:
 
-## Authors 
+    juju add-relation ceph-proxy:client glance:ceph
 
-- Chris MacNaughton <chris.macnaughton@canonical.com>
+## Actions
 
-Report bugs on [Launchpad](http://bugs.launchpad.net/charm-ceph-proxy/+filebug)
+Many of the ceph-mon charm's actions are supported. See file `config.yaml` for
+the full list of options, along with their descriptions and default values. See
+the [Juju documentation][juju-docs-config-apps] for details on configuring
+applications.
 
-## Ceph
+# Bugs
 
-- [Ceph website](http://ceph.com)
-- [Ceph mailing lists](http://ceph.com/resources/mailing-list-irc/)
-- [Ceph bug tracker](http://tracker.ceph.com/projects/ceph)
+Please report bugs on [Launchpad][lp-bugs-charm-ceph-proxy].
+
+For general charm questions refer to the [OpenStack Charm Guide][cg].
+
+<!-- LINKS -->
+
+[ceph-upstream]: https://ceph.io
+[cg]: https://docs.openstack.org/charm-guide
+[ceph-mon-charm]: https://jaas.ai/ceph-mon
+[juju-docs-actions]: https://jaas.ai/docs/actions
+[juju-docs-config-apps]: https://juju.is/docs/configuring-applications
+[lp-bugs-charm-ceph-proxy]: https://bugs.launchpad.net/charm-ceph-proxy/+filebug
