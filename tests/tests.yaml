@@ -23,6 +23,8 @@ dev_bundles:
   - xenial-ocata
   # Pike
   - xenial-pike
+  - focal-victoria
+  - groovy-victoria
 smoke_bundles:
   - bionic-train
 
@@ -42,4 +44,4 @@ target_deploy_status:
 
 tests_options:
   force_deploy:
-    - focal-ussuri
+    - groovy-victoria
