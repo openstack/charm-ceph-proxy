@@ -53,10 +53,8 @@ application:
 
 ## Actions
 
-Many of the ceph-mon charm's actions are supported. See file `config.yaml` for
-the full list of options, along with their descriptions and default values. See
-the [Juju documentation][juju-docs-config-apps] for details on configuring
-applications.
+Many of the ceph-mon charm's actions are supported. See file `actions.yaml` for
+the full list of actions, along with their descriptions.
 
 # Bugs
 
