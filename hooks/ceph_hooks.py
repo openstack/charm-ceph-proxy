@@ -16,6 +16,7 @@ import sys
 
 _path = os.path.dirname(os.path.realpath(__file__))
 _root = os.path.abspath(os.path.join(_path, '..'))
+_lib = os.path.abspath(os.path.join(_path, '../lib'))
 
 
 def _add_path(path):
@@ -24,6 +25,7 @@ def _add_path(path):
 
 
 _add_path(_root)
+_add_path(_lib)
 
 import ceph
 from charmhelpers.core.hookenv import (
@@ -63,7 +65,7 @@ from charmhelpers.contrib.openstack.utils import (
 
 from charmhelpers.core.templating import render
 
-from ceph_broker import (
+from charms_ceph.broker import (
     process_requests
 )
 

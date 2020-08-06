@@ -18,3 +18,10 @@ bin/charm_helpers_sync.py:
 
 sync: bin/charm_helpers_sync.py
 	$(PYTHON) bin/charm_helpers_sync.py -c charm-helpers-hooks.yaml
+
+bin/git_sync.py:
+	@mkdir -p bin
+	@wget -O bin/git_sync.py https://raw.githubusercontent.com/CanonicalLtd/git-sync/master/git_sync.py
+
+ceph-sync:  bin/git_sync.py
+	$(PYTHON) bin/git_sync.py -d lib -s https://github.com/openstack/charms.ceph.git
