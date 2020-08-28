@@ -22,6 +22,8 @@ gate_bundles:
   - bionic-ussuri
   - focal-ussuri
   - erasure-coded: focal-ussuri-ec
+  - focal-victoria
+  - erasure-coded: focal-victoria-ec
 
 dev_bundles:
   # Icehouse
@@ -30,8 +32,8 @@ dev_bundles:
   - xenial-ocata
   # Pike
   - xenial-pike
-  - focal-victoria
   - groovy-victoria
+  - erasure-coded: groovy-victoria-ec
 
 smoke_bundles:
   - focal-ussuri
@@ -56,3 +58,4 @@ target_deploy_status:
 tests_options:
   force_deploy:
     - groovy-victoria
+    - groovy-victoria-ec
