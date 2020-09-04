@@ -15,7 +15,7 @@ def _add_path(path):
 _add_path(_hooks)
 _add_path(_root)
 
-from charmhelpers.core.hookenv import action_get, log, action_fail
+from charmhelpers.core.hookenv import action_get, config, log, action_fail
 from ceph_broker import handle_set_pool_value
 
 if __name__ == '__main__':
@@ -27,7 +27,7 @@ if __name__ == '__main__':
                'value': value}
 
     try:
-        handle_set_pool_value(service='admin', request=request)
+        handle_set_pool_value(service=config('admin-user'), request=request)
     except CalledProcessError as e:
         log(str(e))
         action_fail("Setting pool key: {} and value: {} failed with "

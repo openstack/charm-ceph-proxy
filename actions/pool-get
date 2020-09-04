@@ -16,13 +16,13 @@ def _add_path(path):
 _add_path(_hooks)
 _add_path(_root)
 
-from charmhelpers.core.hookenv import log, action_set, action_get, action_fail
+from charmhelpers.core.hookenv import log, config, action_set, action_get, action_fail
 
 if __name__ == '__main__':
     name = action_get('pool-name')
     key = action_get('key')
     try:
-        out = check_output(['ceph', '--id', 'admin',
+        out = check_output(['ceph', '--id', config('admin-user'),
                             'osd', 'pool', 'get', name, key]).decode('UTF-8')
         action_set({'message': out})
     except CalledProcessError as e:

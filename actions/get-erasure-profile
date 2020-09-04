@@ -16,12 +16,12 @@ _add_path(_hooks)
 _add_path(_root)
 
 from charmhelpers.contrib.storage.linux.ceph import get_erasure_profile
-from charmhelpers.core.hookenv import action_get, action_set
+from charmhelpers.core.hookenv import action_get, action_set, config
 
 
 def make_erasure_profile():
     name = action_get("name")
-    out = get_erasure_profile(service='admin', name=name)
+    out = get_erasure_profile(service=config('admin-user'), name=name)
     action_set({'message': out})
 
 

@@ -17,14 +17,14 @@ _add_path(_root)
 
 
 from charmhelpers.contrib.storage.linux.ceph import create_erasure_profile
-from charmhelpers.core.hookenv import action_get, log, action_fail
+from charmhelpers.core.hookenv import action_get, config, log, action_fail
 
 
 def make_erasure_profile():
     name = action_get("name")
     plugin = action_get("plugin")
     failure_domain = action_get("failure-domain")
-
+    user = config('admin-user')
     # jerasure requires k+m
     # isa requires k+m
     # local requires k+m+l
@@ -34,7 +34,7 @@ def make_erasure_profile():
         k = action_get("data-chunks")
         m = action_get("coding-chunks")
         try:
-            create_erasure_profile(service='admin',
+            create_erasure_profile(service=user,
                                    erasure_plugin_name=plugin,
                                    profile_name=name,
                                    data_chunks=k,
@@ -48,7 +48,7 @@ def make_erasure_profile():
         k = action_get("data-chunks")
         m = action_get("coding-chunks")
         try:
-            create_erasure_profile(service='admin',
+            create_erasure_profile(service=user,
                                    erasure_plugin_name=plugin,
                                    profile_name=name,
                                    data_chunks=k,
@@ -63,7 +63,7 @@ def make_erasure_profile():
         m = action_get("coding-chunks")
         l = action_get("locality-chunks")
         try:
-            create_erasure_profile(service='admin',
+            create_erasure_profile(service=user,
                                    erasure_plugin_name=plugin,
                                    profile_name=name,
                                    data_chunks=k,
@@ -79,7 +79,7 @@ def make_erasure_profile():
         m = action_get("coding-chunks")
         c = action_get("durability-estimator")
         try:
-            create_erasure_profile(service='admin',
+            create_erasure_profile(service=user,
                                    erasure_plugin_name=plugin,
                                    profile_name=name,
                                    data_chunks=k,

@@ -15,14 +15,14 @@ _add_path(_hooks)
 _add_path(_root)
 
 from subprocess import CalledProcessError
-from charmhelpers.core.hookenv import action_get, log, action_fail
+from charmhelpers.core.hookenv import action_get, config, log, action_fail
 from charmhelpers.contrib.storage.linux.ceph import set_pool_quota
 
 if __name__ == '__main__':
     max_bytes = action_get("max")
     name = action_get("pool-name")
     try:
-        set_pool_quota(service='admin', pool_name=name, max_bytes=max_bytes)
+        set_pool_quota(service=config('admin-user'), pool_name=name, max_bytes=max_bytes)
     except CalledProcessError as e:
         log(str(e))
         action_fail("Set pool quota failed with message: {}".format(str(e)))

@@ -16,7 +16,7 @@ _add_path(_hooks)
 _add_path(_root)
 
 from charmhelpers.contrib.storage.linux.ceph import Pool, pool_exists
-from charmhelpers.core.hookenv import action_get, log, action_fail
+from charmhelpers.core.hookenv import action_get, config, log, action_fail
 
 __author__ = 'chris'
 
@@ -24,21 +24,21 @@ __author__ = 'chris'
 def delete_cache_tier():
     backer_pool = action_get("backer-pool")
     cache_pool = action_get("cache-pool")
-
+    user = config('admin-user')
     # Pre flight checks
-    if not pool_exists('admin', backer_pool):
+    if not pool_exists(user, backer_pool):
         log("Backer pool {} must exist before calling this".format(
             backer_pool))
         action_fail("remove-cache-tier failed. Backer pool {} must exist "
                     "before calling this".format(backer_pool))
 
-    if not pool_exists('admin', cache_pool):
+    if not pool_exists(user, cache_pool):
         log("Cache pool {} must exist before calling this".format(
             cache_pool))
         action_fail("remove-cache-tier failed. Cache pool {} must exist "
                     "before calling this".format(cache_pool))
 
-    pool = Pool(service='admin', name=backer_pool)
+    pool = Pool(service=user, name=backer_pool)
     try:
         pool.remove_cache_tier(cache_pool=cache_pool)
     except CalledProcessError as err:
