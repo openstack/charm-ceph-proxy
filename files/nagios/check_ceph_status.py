@@ -16,12 +16,12 @@ def check_ceph_status(args):
         with open(args.status_file, "r") as f:
             lines = f.readlines()
             status_data = dict(
-                l.strip().split(' ', 1) for l in lines if len(l) > 1
+                line.strip().split(' ', 1) for line in lines if len(line) > 1
             )
     else:
         lines = subprocess.check_output(["ceph", "status"]).split('\n')
         status_data = dict(
-            l.strip().split(' ', 1) for l in lines if len(l) > 1
+            line.strip().split(' ', 1) for line in lines if len(line) > 1
         )
 
     if ('health' not in status_data or
@@ -33,7 +33,7 @@ def check_ceph_status(args):
         msg = 'CRITICAL: ceph health status: "{}"'.format(
             status_data['health'])
         raise nagios_plugin.CriticalError(msg)
-    osds = re.search("^.*: (\d+) osds: (\d+) up, (\d+) in",
+    osds = re.search(r"^.*: (\d+) osds: (\d+) up, (\d+) in",
                      status_data['osdmap'])
     if osds.group(1) > osds.group(2):  # not all OSDs are "up"
         msg = 'CRITICAL: Some OSDs are not up. Total: {}, up: {}'.format(
