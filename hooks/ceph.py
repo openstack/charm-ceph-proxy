@@ -89,7 +89,7 @@ def get_version():
     package = "ceph"
     try:
         pkg = cache[package]
-    except:
+    except Exception:
         # the package is unknown to the current apt cache.
         e = 'Could not determine version of package with no installation ' \
             'candidate: %s' % package
@@ -104,7 +104,7 @@ def get_version():
 
     # x.y match only for 20XX.X
     # and ignore patch level for other packages
-    match = re.match('^(\d+)\.(\d+)', vers)
+    match = re.match(r'^(\d+)\.(\d+)', vers)
 
     if match:
         vers = match.group(0)
@@ -274,6 +274,7 @@ def generate_monitor_secret():
 
     return "{}==".format(res.split('=')[1].strip())
 
+
 # OSD caps taken from ceph-create-keys
 _osd_bootstrap_caps = {
     'mon': [
@@ -311,7 +312,7 @@ def get_osd_bootstrap_key():
         # Attempt to get/create a key using the OSD bootstrap profile first
         key = get_named_key('bootstrap-osd',
                             _osd_bootstrap_caps_profile)
-    except:
+    except Exception:
         # If that fails try with the older style permissions
         key = get_named_key('bootstrap-osd',
                             _osd_bootstrap_caps)
@@ -334,6 +335,7 @@ def import_radosgw_key(key):
             '--add-key={}'.format(key)
         ]
         subprocess.check_call(cmd)
+
 
 # OSD caps taken from ceph-create-keys
 _radosgw_caps = {
@@ -516,7 +518,7 @@ def bootstrap_monitor_cluster(secret):
                 service_restart('ceph-mon')
             else:
                 service_restart('ceph-mon-all')
-        except:
+        except Exception:
             raise
         finally:
             os.unlink(keyring)
