@@ -347,8 +347,8 @@ _upgrade_caps = {
 }
 
 
-def get_radosgw_key():
-    return get_named_key('radosgw.gateway', _radosgw_caps)
+def get_radosgw_key(name='radosgw.gateway'):
+    return get_named_key(name, _radosgw_caps)
 
 
 _default_caps = collections.OrderedDict([

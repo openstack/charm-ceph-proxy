@@ -54,6 +54,12 @@ target_deploy_status:
   nova-compute:
     workload-status: waiting
     workload-status-message: "Incomplete relations: storage-backend"
+  cinder-ceph:
+    workload-status: waiting
+    workload-status-message: "Ceph broker request incomplete"
+  glance:
+    workload-status: waiting
+    workload-status-message: "Incomplete relations: storage-backend"
 
 tests_options:
   force_deploy:
