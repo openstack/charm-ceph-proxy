@@ -24,6 +24,8 @@ gate_bundles:
   - erasure-coded: focal-ussuri-ec
   - focal-victoria
   - erasure-coded: focal-victoria-ec
+  - groovy-victoria
+  - erasure-coded: groovy-victoria-ec
 
 dev_bundles:
   # Icehouse
@@ -32,8 +34,6 @@ dev_bundles:
   - xenial-ocata
   # Pike
   - xenial-pike
-  - groovy-victoria
-  - erasure-coded: groovy-victoria-ec
 
 smoke_bundles:
   - focal-ussuri

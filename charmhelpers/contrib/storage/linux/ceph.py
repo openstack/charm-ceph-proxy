@@ -41,6 +41,7 @@ from subprocess import (
 )
 from charmhelpers import deprecate
 from charmhelpers.core.hookenv import (
+    application_name,
     config,
     service_name,
     local_unit,
@@ -162,6 +163,17 @@ def get_osd_settings(relation_name):
     return _order_dict_by_key(osd_settings)
 
 
+def send_application_name(relid=None):
+    """Send the application name down the relation.
+
+    :param relid: Relation id to set application name in.
+    :type relid: str
+    """
+    relation_set(
+        relation_id=relid,
+        relation_settings={'application-name': application_name()})
+
+
 def send_osd_settings():
     """Pass on requested OSD settings to osd units."""
     try:
@@ -256,6 +268,7 @@ class BasePool(object):
         'compression-max-blob-size': (int, None),
         'compression-max-blob-size-hdd': (int, None),
         'compression-max-blob-size-ssd': (int, None),
+        'rbd-mirroring-mode': (str, ('image', 'pool'))
     }
 
     def __init__(self, service, name=None, percent_data=None, app_name=None,
@@ -1755,6 +1768,7 @@ class CephBrokerRq(object):
                                         max_bytes=None,
                                         max_objects=None,
                                         namespace=None,
+                                        rbd_mirroring_mode='pool',
                                         weight=None):
         """Build common part of a create pool operation.
 
@@ -1813,6 +1827,9 @@ class CephBrokerRq(object):
         :type max_objects: Optional[int]
         :param namespace: Group namespace
         :type namespace: Optional[str]
+        :param rbd_mirroring_mode: Pool mirroring mode used when Ceph RBD
+                                   mirroring is enabled.
+        :type rbd_mirroring_mode: Optional[str]
         :param weight: The percentage of data that is expected to be contained
                        in the pool from the total available space on the OSDs.
                        Used to calculate number of Placement Groups to create
@@ -1837,6 +1854,7 @@ class CephBrokerRq(object):
             'max-bytes': max_bytes,
             'max-objects': max_objects,
             'group-namespace': namespace,
+            'rbd-mirroring-mode': rbd_mirroring_mode,
             'weight': weight,
         }
 
@@ -2203,6 +2221,7 @@ def send_request_if_needed(request, relation='ceph'):
         for rid in relation_ids(relation):
             log('Sending request {}'.format(request.request_id), level=DEBUG)
             relation_set(relation_id=rid, broker_req=request.request)
+            relation_set(relation_id=rid, relation_settings={'unit-name': local_unit()})
 
 
 def has_broker_rsp(rid=None, unit=None):
