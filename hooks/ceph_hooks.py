@@ -176,10 +176,18 @@ def radosgw_relation(relid=None, unit=None):
         ceph_addrs = config('monitor-hosts')
         data = {
             'fsid': config('fsid'),
-            'radosgw_key': ceph.get_radosgw_key(),
             'auth': config('auth-supported'),
             'ceph-public-address': ceph_addrs,
         }
+        key_name = relation_get('key_name', unit=unit, rid=relid)
+        if key_name:
+            # New style, per unit keys
+            data['{}_key'.format(key_name)] = (
+                ceph.get_radosgw_key(name=key_name)
+            )
+        else:
+            # Old style global radosgw key
+            data['radosgw_key'] = ceph.get_radosgw_key()
 
         settings = relation_get(rid=relid, unit=unit) or {}
         """Process broker request(s)."""
