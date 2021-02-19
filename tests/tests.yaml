@@ -12,11 +12,8 @@ tests:
     - zaza.openstack.charm_tests.ceph.tests.CheckPoolTypes
 
 gate_bundles:
-  - trusty-mitaka # jewel
   - xenial-mitaka # jewel
-  - xenial-queens # luminous
   - bionic-queens # luminous
-  - bionic-rocky  # mimic
   - bionic-stein
   - bionic-train
   - bionic-ussuri
@@ -31,9 +28,12 @@ dev_bundles:
   # Icehouse
   - trusty-icehouse
   # Jewel
+  - trusty-mitaka
   - xenial-ocata
   # Pike
   - xenial-pike
+  - xenial-queens # luminous
+  - bionic-rocky  # mimic
 
 smoke_bundles:
   - focal-ussuri
