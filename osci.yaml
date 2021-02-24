@@ -1,0 +1,34 @@
+- project:
+    templates:
+      - charm-unit-jobs
+    check:
+      jobs:
+      - bionic-queens # luminous
+      - bionic-stein
+      - bionic-train
+      - bionic-ussuri
+      - focal-ussuri
+      - focal-ussuri-ec
+      - focal-victoria
+      - focal-victoria-ec
+      - groovy-victoria
+      - groovy-victoria-ec
+- job:
+    name: focal-ussuri-ec
+    parent: func-target
+    dependencies: &smoke-jobs
+      - bionic-ussuri
+    vars:
+      tox_extra_args: erasure-coded:focal-ussuri-ec
+- job:
+    name: focal-victoria-ec
+    parent: func-target
+    dependencies: *smoke-jobs
+    vars:
+      tox_extra_args: erasure-coded:focal-victoria-ec
+- job:
+    name: groovy-victoria-ec
+    parent: func-target
+    dependencies: *smoke-jobs
+    vars:
+      tox_extra_args: erasure-coded:groovy-victoria-ec
