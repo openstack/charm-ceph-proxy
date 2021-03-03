@@ -11,8 +11,12 @@
       - focal-ussuri-ec
       - focal-victoria
       - focal-victoria-ec
+      - focal-wallaby
+      - focal-wallaby-ec
       - groovy-victoria
       - groovy-victoria-ec
+      - hirsute-wallaby
+      - hirsute-wallaby-ec
 - job:
     name: focal-ussuri-ec
     parent: func-target
@@ -27,8 +31,20 @@
     vars:
       tox_extra_args: erasure-coded:focal-victoria-ec
 - job:
+    name: focal-wallaby-ec
+    parent: func-target
+    dependencies: *smoke-jobs
+    vars:
+      tox_extra_args: erasure-coded:focal-wallaby-ec
+- job:
     name: groovy-victoria-ec
     parent: func-target
     dependencies: *smoke-jobs
     vars:
       tox_extra_args: erasure-coded:groovy-victoria-ec
+- job:
+    name: hirsute-wallaby-ec
+    parent: func-target
+    dependencies: *smoke-jobs
+    vars:
+      tox_extra_args: erasure-coded:hirsute-wallaby-ec
