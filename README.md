@@ -7,6 +7,10 @@ The ceph-proxy charm deploys a proxy that acts as a [ceph-mon][ceph-mon-charm]
 application for an external Ceph cluster. It joins a non-charmed Ceph cluster
 to a Juju model.
 
+The charm works with traditional Ceph charm clients (e.g. cinder, glance,
+nova-compute) but it also supports the [ceph-radosgw][ceph-radosgw-charm] and
+[ceph-fs][ceph-fs-charm] charms.
+
 # Usage
 
 ## Configuration
@@ -66,7 +70,9 @@ For general charm questions refer to the [OpenStack Charm Guide][cg].
 
 [ceph-upstream]: https://ceph.io
 [cg]: https://docs.openstack.org/charm-guide
-[ceph-mon-charm]: https://jaas.ai/ceph-mon
-[juju-docs-actions]: https://jaas.ai/docs/actions
+[ceph-mon-charm]: https://charmhub.io/ceph-mon
+[ceph-fs-charm]: https://charmbui.io/ceph-fs
+[ceph-radosgw-charm]: https://charmbui.io/ceph-radosgw
+[juju-docs-actions]: https://charmbui.io/docs/actions
 [juju-docs-config-apps]: https://juju.is/docs/configuring-applications
 [lp-bugs-charm-ceph-proxy]: https://bugs.launchpad.net/charm-ceph-proxy/+filebug

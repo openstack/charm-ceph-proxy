@@ -25,6 +25,9 @@ machines:
   '13':
   '14':
   '15':
+  '16':
+  '17':
+  '18':
 
 applications:
 
@@ -146,6 +149,19 @@ applications:
       - '15'
     channel: latest/edge
 
+  ubuntu: # used to test mounts
+    charm: ch:ubuntu
+    num_units: 2
+    to:
+      - '16'
+      - '17'
+
+  ceph-fs:
+    charm: ch:ceph-fs
+    channel: latest/edge
+    num_units: 1
+    to:
+      - '18'
 
 relations:
 
@@ -193,3 +209,6 @@ relations:
 
   - - 'nova-compute:amqp'
     - 'rabbitmq-server:amqp'
+
+  - - 'ceph-proxy:mds'
+    - 'ceph-fs:ceph-mds'

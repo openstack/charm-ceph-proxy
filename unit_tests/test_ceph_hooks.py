@@ -74,10 +74,11 @@ class TestHooks(test_utils.CharmTestCase):
         mock_apt_install.assert_called_with(packages=[])
 
     @mock.patch('ceph.ceph_user')
+    @mock.patch.object(hooks, 'mds_relation_joined', autospec=True)
     @mock.patch.object(hooks, 'radosgw_relation')
     @mock.patch.object(hooks, 'client_relation_joined')
     def test_emit_cephconf(self, mock_client_rel, mock_rgw_rel,
-                           mock_ceph_user):
+                           mock_mds_rel, mock_ceph_user):
         mock_ceph_user.return_value = 'ceph-user'
         self.test_config.set('monitor-hosts', '127.0.0.1:1234')
         self.test_config.set('fsid', 'abc123')
@@ -89,6 +90,8 @@ class TestHooks(test_utils.CharmTestCase):
                  'client': ['client:1'],
                  'rados:1': ['rados/1'],
                  'client:1': ['client/1'],
+                 'mds': ['mds:2'],
+                 'mds:2': ['mds/3'],
                  }
             return x[k]
 
@@ -127,6 +130,7 @@ class TestHooks(test_utils.CharmTestCase):
 
         mock_rgw_rel.assert_called_with(relid='rados:1', unit='rados/1')
         mock_client_rel.assert_called_with(relid='client:1', unit='client/1')
+        mock_mds_rel.assert_called_with(relid='mds:2', unit='mds/3')
 
     @mock.patch.object(hooks.ceph, 'ceph_user')
     @mock.patch('subprocess.check_output')
@@ -161,6 +165,56 @@ class TestHooks(test_utils.CharmTestCase):
         hooks.config_changed()
         mock_package_install.assert_not_called()
         mock_emit_cephconf.assert_any_call()
+
+    @mock.patch('subprocess.check_output', autospec=True)
+    @mock.patch('ceph.config', autospec=True)
+    @mock.patch('ceph.get_mds_key', autospec=True)
+    @mock.patch('ceph.ceph_user', autospec=True)
+    def test_mds_relation_joined(self, ceph_user, get_mds_key, ceph_config,
+                                 check_output):
+        my_mds_key = '1234-key'
+        mds_name = 'adjusted-mayfly'
+        rid = 'mds:1'
+        ceph_user.return_value = 'ceph'
+        get_mds_key.return_value = my_mds_key
+        ceph_config.side_effect = self.test_config.get
+
+        settings = {'ceph-public-address': '127.0.0.1:1234 [::1]:4321',
+                    'auth': 'cephx',
+                    'fsid': 'some-fsid'}
+
+        rel_data_get = {'broker_req': 'my-uuid',
+                        'mds-name': mds_name}
+        rel_data_set = {'broker-rsp-client-0': 'foobar',
+                        '%s_mds_key' % mds_name: my_mds_key}
+        rel_data_set.update(settings)
+
+        def fake_relation_get(attribute=None, rid=None, unit=None):
+            if attribute:
+                return rel_data_get[attribute]
+            else:
+                return rel_data_get
+
+        self.relation_get.side_effect = fake_relation_get
+
+        # unconfigured ceph-proxy
+        with mock.patch.object(hooks, 'log') as log:
+            hooks.mds_relation_joined()
+            log.assert_called_with(
+                'MDS: FSID or admin key not provided, please configure them',
+                level='INFO')
+
+        # Configure ceph-proxy with the ceph details.
+        self.test_config.set('monitor-hosts', settings['ceph-public-address'])
+        self.test_config.set('fsid', settings['fsid'])
+        self.test_config.set('admin-key', 'some-admin-key')
+
+        with mock.patch.object(hooks, 'process_requests') as process_requests:
+            process_requests.return_value = 'foobar'
+            hooks.mds_relation_joined(relid=rid)
+            process_requests.assert_called_with('my-uuid')
+            self.relation_set.assert_called_with(
+                relation_id=rid, relation_settings=rel_data_set)
 
     @mock.patch('ceph_hooks.emit_cephconf')
     @mock.patch('ceph_hooks.package_install')

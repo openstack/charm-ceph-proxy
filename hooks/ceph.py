@@ -351,6 +351,12 @@ def get_radosgw_key(name='radosgw.gateway'):
     return get_named_key(name, _radosgw_caps)
 
 
+def get_mds_key(name):
+    return get_named_entity_key(entity='mds',
+                                name=name,
+                                caps=mds_caps)
+
+
 _default_caps = collections.OrderedDict([
     ('mon', ['allow r',
              'allow command "osd blacklist"']),
@@ -362,6 +368,12 @@ admin_caps = {
     'mon': ['allow *'],
     'osd': ['allow *']
 }
+
+mds_caps = collections.OrderedDict([
+    ('osd', ['allow *']),
+    ('mds', ['allow']),
+    ('mon', ['allow rwx']),
+])
 
 osd_upgrade_caps = {
     'mon': ['allow command "config-key"',
@@ -390,15 +402,17 @@ def _config_user_key(name):
                     return k
 
 
-def get_named_key(name, caps=None, pool_list=None):
+def get_named_entity_key(name, caps=None, pool_list=None,
+                         entity='client'):
     """Retrieve a specific named cephx key.
 
-    :param name: String Name of key to get.
-    :param pool_list: The list of pools to give access to
+    :param name: String Name of key to get. EXACT MATCH
     :param caps: dict of cephx capabilities
+    :param pool_list: The list of pools to give access to
+    :param entity: String Name of type to get.
     :returns: Returns a cephx key
     """
-    key_name = 'client.{}'.format(name)
+    key_name = '{}.{}'.format(entity, name)
     try:
         # Does the key already exist?
         output = str(subprocess.check_output(
@@ -424,7 +438,8 @@ def get_named_key(name, caps=None, pool_list=None):
         return parse_key(output)
     except subprocess.CalledProcessError:
         # Couldn't get the key, time to create it!
-        log("Creating new key for {}".format(name), level=DEBUG)
+        log("Creating new key for {}".format(key_name), level=DEBUG)
+
     caps = caps or _default_caps
     cmd = [
         "sudo",
@@ -453,6 +468,17 @@ def get_named_key(name, caps=None, pool_list=None):
                          .check_output(cmd)
                          .decode('UTF-8'))
                      .strip())  # IGNORE:E1103
+
+
+def get_named_key(name, caps=None, pool_list=None):
+    """Retrieve a specific named cephx key.
+
+    :param name: String Name of key to get.
+    :param caps: dict of cephx capabilities
+    :param pool_list: The list of pools to give access to
+    :returns: Returns a cephx key
+    """
+    return get_named_entity_key(name, caps, pool_list, entity='client')
 
 
 def upgrade_key_caps(key, caps, pool_list=None):

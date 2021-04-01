@@ -31,6 +31,7 @@ import ceph
 from charmhelpers.core.hookenv import (
     log,
     DEBUG,
+    INFO,
     config,
     is_leader,
     relation_ids,
@@ -137,6 +138,7 @@ def emit_cephconf():
 
     notify_radosgws()
     notify_client()
+    notify_cephfs_mds()
 
 
 @hooks.hook('config-changed')
@@ -158,6 +160,12 @@ def notify_client():
     for relid in relation_ids('client'):
         for unit in related_units(relid):
             client_relation_joined(relid=relid, unit=unit)
+
+
+def notify_cephfs_mds():
+    for relid in relation_ids('mds'):
+        for unit in related_units(relid):
+            mds_relation_joined(relid=relid, unit=unit)
 
 
 @hooks.hook('radosgw-relation-changed')
@@ -201,6 +209,41 @@ def radosgw_relation(relid=None, unit=None):
         relation_set(relation_id=relid, relation_settings=data)
     else:
         log('FSID or admin key not provided, please configure them')
+
+
+@hooks.hook('mds-relation-joined')
+@hooks.hook('mds-relation-changed')
+def mds_relation_joined(relid=None, unit=None):
+    if not ready():
+        log('MDS: FSID or admin key not provided, please configure them',
+            level=INFO)
+        return
+
+    log('ceph-proxy config ok - providing mds client with keys')
+    if not unit:
+        unit = remote_unit()
+
+    mds_name = relation_get(attribute='mds-name',
+                            rid=relid, unit=unit)
+    ceph_addrs = config('monitor-hosts')
+    data = {
+        'fsid': config('fsid'),
+        'auth': config('auth-supported'),
+        'ceph-public-address': ceph_addrs,
+    }
+    if mds_name:
+        data['{}_mds_key'.format(mds_name)] = (
+            ceph.get_mds_key(name=mds_name)
+        )
+
+    settings = relation_get(rid=relid, unit=unit) or {}
+    if 'broker_req' in settings:
+        rsp = process_requests(settings['broker_req'])
+        unit_id = unit.replace('/', '-')
+        unit_response_key = 'broker-rsp-' + unit_id
+        data[unit_response_key] = rsp
+    log('MDS: relation_set (%s): %s' % (relid, str(data)), level=DEBUG)
+    relation_set(relation_id=relid, relation_settings=data)
 
 
 @hooks.hook('client-relation-joined')
