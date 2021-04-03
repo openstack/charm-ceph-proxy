@@ -1,4 +1,4 @@
-repo: https://github.com/juju/charm-helpers
+repo: https://github.com/juju/charm-helpers@stable/21.04
 destination: charmhelpers
 include:
     - core
@@ -13,9 +13,12 @@ include:
     - payload.execd
     - contrib.openstack:
         - alternatives
+        - deferred_events
         - exceptions
+        - files
         - ha
         - ip
+        - policy_rcd
         - utils
     - contrib.network.ip
     - contrib.charmsupport
