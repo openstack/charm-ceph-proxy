@@ -1,12 +1,12 @@
 series: xenial
 applications:
   ceph-mon:
-    charm: 'cs:~openstack-charmers-next/ceph-mon'
+    charm: 'cs:~openstack-charmers/ceph-mon'
     num_units: 3
     options:
       expected-osd-count: 3
   ceph-osd:
-    charm: 'cs:~openstack-charmers-next/ceph-osd'
+    charm: 'cs:~openstack-charmers/ceph-osd'
     num_units: 3
     storage:
       osd-devices: 10G
@@ -16,11 +16,11 @@ applications:
     num_units: 1
     options:
   ceph-radosgw:
-    charm: 'cs:~openstack-charmers-next/ceph-radosgw'
+    charm: 'cs:~openstack-charmers/ceph-radosgw'
     num_units: 1
     options:
   cinder:
-    charm: 'cs:~openstack-charmers-next/cinder'
+    charm: 'cs:~openstack-charmers/cinder'
     num_units: 1
     options:
       block-device: ""
@@ -29,21 +29,21 @@ applications:
       overwrite: "false"
     constraints: mem=2048
   cinder-ceph:
-    charm: 'cs:~openstack-charmers-next/cinder-ceph'
+    charm: 'cs:~openstack-charmers/cinder-ceph'
     options:
       restrict-ceph-pools: True
   glance:
-    charm: cs:~openstack-charmers-next/glance
+    charm: cs:~openstack-charmers/glance
     num_units: 1
   nova-compute:
-    charm: cs:~openstack-charmers-next/nova-compute
+    charm: cs:~openstack-charmers/nova-compute
     num_units: 1
   keystone:
-    charm: 'cs:~openstack-charmers-next/keystone'
+    charm: 'cs:~openstack-charmers/keystone'
     num_units: 1
     constraints: mem=1024
   percona-cluster:
-    charm: 'cs:~openstack-charmers-next/percona-cluster'
+    charm: 'cs:~openstack-charmers/percona-cluster'
     num_units: 1
     options:
       dataset-size: 50%
@@ -53,7 +53,7 @@ applications:
       sst-password: ChangeMe123
     constraints: mem=4096
   rabbitmq-server:
-    charm: 'cs:~openstack-charmers-next/rabbitmq-server'
+    charm: 'cs:~openstack-charmers/rabbitmq-server'
     num_units: 1
     constraints: mem=1024
 relations:
