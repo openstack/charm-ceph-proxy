@@ -21,6 +21,8 @@ gate_bundles:
   - erasure-coded: focal-ussuri-ec
   - focal-victoria
   - erasure-coded: focal-victoria-ec
+  - focal-wallaby
+  - erasure-coded: focal-wallaby-ec
   - groovy-victoria
   - erasure-coded: groovy-victoria-ec
 
@@ -34,6 +36,8 @@ dev_bundles:
   - xenial-pike
   - xenial-queens # luminous
   - bionic-rocky  # mimic
+  - hirsute-wallaby
+  - erasure-coded: hirsute-wallaby-ec
 
 smoke_bundles:
   - focal-ussuri
@@ -63,5 +67,5 @@ target_deploy_status:
 
 tests_options:
   force_deploy:
-    - groovy-victoria
-    - groovy-victoria-ec
+    - hirsute-wallaby
+    - hirsute-wallaby-ec
