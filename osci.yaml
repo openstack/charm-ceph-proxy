@@ -13,9 +13,18 @@
       - focal-victoria-ec
       - focal-wallaby
       - focal-wallaby-ec
+      - focal-xena:
+          voting: false
+      - focal-wallaby-ec:
+          voting: false
       - groovy-victoria
       - groovy-victoria-ec
       - hirsute-wallaby
+      - hirsute-wallaby-ec
+      - impish-xena:
+          voting: false
+      - impish-xena-ec:
+          voting: false
       - hirsute-wallaby-ec
 - job:
     name: focal-ussuri-ec
@@ -48,3 +57,9 @@
     dependencies: *smoke-jobs
     vars:
       tox_extra_args: erasure-coded:hirsute-wallaby-ec
+- job:
+    name: impish-xena-ec
+    parent: func-target
+    dependencies: *smoke-jobs
+    vars:
+      tox_extra_args: erasure-coded:impish-xena-ec

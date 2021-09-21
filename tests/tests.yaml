@@ -23,6 +23,8 @@ gate_bundles:
   - erasure-coded: focal-victoria-ec
   - focal-wallaby
   - erasure-coded: focal-wallaby-ec
+  - focal-xena
+  - erasure-coded: focal-xena-ec
   - groovy-victoria
   - erasure-coded: groovy-victoria-ec
 
@@ -38,6 +40,8 @@ dev_bundles:
   - bionic-rocky  # mimic
   - hirsute-wallaby
   - erasure-coded: hirsute-wallaby-ec
+  - impish-xena
+  - erasure-coded: impish-xena-ec
 
 smoke_bundles:
   - focal-ussuri
@@ -69,3 +73,5 @@ tests_options:
   force_deploy:
     - hirsute-wallaby
     - hirsute-wallaby-ec
+    - impish-xena
+    - impish-xena-ec
