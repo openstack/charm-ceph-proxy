@@ -5,14 +5,12 @@ applications:
     num_units: 3
     options:
       expected-osd-count: 3
-    channel: candidate
   ceph-osd:
     charm: 'cs:~openstack-charmers/ceph-osd'
     num_units: 3
     storage:
       osd-devices: 10G
     options:
-    channel: candidate
   ceph-proxy:
     charm: 'ceph-proxy'
     num_units: 1
@@ -21,7 +19,6 @@ applications:
     charm: 'cs:~openstack-charmers/ceph-radosgw'
     num_units: 1
     options:
-    channel: candidate
   cinder:
     charm: 'cs:~openstack-charmers/cinder'
     num_units: 1
@@ -31,25 +28,20 @@ applications:
       glance-api-version: 2
       overwrite: "false"
     constraints: mem=2048
-    channel: candidate
   cinder-ceph:
     charm: 'cs:~openstack-charmers/cinder-ceph'
     options:
       restrict-ceph-pools: True
-    channel: candidate
   glance:
     charm: cs:~openstack-charmers/glance
     num_units: 1
-    channel: candidate
   nova-compute:
     charm: cs:~openstack-charmers/nova-compute
     num_units: 1
-    channel: candidate
   keystone:
     charm: 'cs:~openstack-charmers/keystone'
     num_units: 1
     constraints: mem=1024
-    channel: candidate
   percona-cluster:
     charm: 'cs:~openstack-charmers/percona-cluster'
     num_units: 1
@@ -60,12 +52,10 @@ applications:
       root-password: ChangeMe123
       sst-password: ChangeMe123
     constraints: mem=4096
-    channel: candidate
   rabbitmq-server:
     charm: 'cs:~openstack-charmers/rabbitmq-server'
     num_units: 1
     constraints: mem=1024
-    channel: candidate
 relations:
   - - 'ceph-osd:mon'
     - 'ceph-mon:osd'

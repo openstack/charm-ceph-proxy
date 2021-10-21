@@ -33,13 +33,10 @@ applications:
 
   cinder-mysql-router:
     charm: cs:~openstack-charmers/mysql-router
-    channel: candidate
   glance-mysql-router:
     charm: cs:~openstack-charmers/mysql-router
-    channel: candidate
   keystone-mysql-router:
     charm: cs:~openstack-charmers/mysql-router
-    channel: candidate
 
   mysql-innodb-cluster:
     charm: cs:~openstack-charmers/mysql-innodb-cluster
@@ -50,7 +47,6 @@ applications:
       - '0'
       - '1'
       - '2'
-    channel: candidate
 
   ceph-mon:
     charm: cs:~openstack-charmers/ceph-mon
@@ -62,7 +58,6 @@ applications:
       - '3'
       - '4'
       - '5'
-    channel: candidate
 
   ceph-osd:
     charm: cs:~openstack-charmers/ceph-osd
@@ -78,7 +73,6 @@ applications:
       - '16'
       - '17'
       - '18'
-    channel: candidate
 
   ceph-proxy:
     charm: ceph-proxy
@@ -98,7 +92,6 @@ applications:
       ec-profile-m: 2
     to:
       - '10'
-    channel: candidate
 
   cinder:
     charm: cs:~openstack-charmers/cinder
@@ -112,7 +105,6 @@ applications:
     constraints: mem=2048
     to:
       - '11'
-    channel: candidate
 
   cinder-ceph:
     charm: cs:~openstack-charmers/cinder-ceph
@@ -123,7 +115,6 @@ applications:
       ec-profile-m: 2
       ec-profile-plugin: lrc
       ec-profile-locality: 3
-    channel: candidate
 
   keystone:
     charm: cs:~openstack-charmers/keystone
@@ -134,7 +125,6 @@ applications:
     constraints: mem=1024
     to:
       - '12'
-    channel: candidate
 
   rabbitmq-server:
     charm: cs:~openstack-charmers/rabbitmq-server
@@ -144,7 +134,6 @@ applications:
       source: *openstack-origin
     to:
       - '13'
-    channel: candidate
 
   glance:
     charm: cs:~openstack-charmers/glance
@@ -157,7 +146,6 @@ applications:
       ec-profile-plugin: jerasure
     to:
       - '14'
-    channel: candidate
 
   nova-compute:
     charm: cs:~openstack-charmers/nova-compute
@@ -171,7 +159,6 @@ applications:
       libvirt-image-backend: rbd
     to:
       - '15'
-    channel: candidate
 
 
 relations:
