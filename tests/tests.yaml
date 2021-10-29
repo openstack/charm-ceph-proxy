@@ -12,10 +12,8 @@ tests:
     - zaza.openstack.charm_tests.ceph.tests.CheckPoolTypes
 
 gate_bundles:
-  - xenial-mitaka # jewel
-  - bionic-queens # luminous
+  - bionic-queens
   - bionic-stein
-  - bionic-train
   - bionic-ussuri
   - focal-ussuri
   - erasure-coded: focal-ussuri-ec
@@ -25,23 +23,18 @@ gate_bundles:
   - erasure-coded: focal-wallaby-ec
   - focal-xena
   - erasure-coded: focal-xena-ec
-  - groovy-victoria
-  - erasure-coded: groovy-victoria-ec
-
-dev_bundles:
-  # Icehouse
-  - trusty-icehouse
-  # Jewel
-  - trusty-mitaka
-  - xenial-ocata
-  # Pike
-  - xenial-pike
-  - xenial-queens # luminous
-  - bionic-rocky  # mimic
   - hirsute-wallaby
   - erasure-coded: hirsute-wallaby-ec
   - impish-xena
   - erasure-coded: impish-xena-ec
+
+dev_bundles:
+  - bionic-rocky  # mimic
+  - bionic-train
+  - focal-yoga
+  - erasure-coded: focal-yoga-ec
+  - jammy-yoga
+  - erasure-coded: jammy-yoga-ec
 
 smoke_bundles:
   - focal-ussuri
@@ -75,3 +68,5 @@ tests_options:
     - hirsute-wallaby-ec
     - impish-xena
     - impish-xena-ec
+    - jammy-yoga
+    - jammy-yoga-ec
