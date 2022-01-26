@@ -12,32 +12,19 @@ tests:
     - zaza.openstack.charm_tests.ceph.tests.CheckPoolTypes
 
 gate_bundles:
-  - bionic-queens
-  - bionic-stein
-  - bionic-ussuri
-  - focal-ussuri
-  - erasure-coded: focal-ussuri-ec
-  - focal-victoria
-  - erasure-coded: focal-victoria-ec
-  - focal-wallaby
-  - erasure-coded: focal-wallaby-ec
   - focal-xena
   - erasure-coded: focal-xena-ec
-  - hirsute-wallaby
-  - erasure-coded: hirsute-wallaby-ec
   - impish-xena
   - erasure-coded: impish-xena-ec
 
 dev_bundles:
-  - bionic-rocky  # mimic
-  - bionic-train
   - focal-yoga
   - erasure-coded: focal-yoga-ec
   - jammy-yoga
   - erasure-coded: jammy-yoga-ec
 
 smoke_bundles:
-  - focal-ussuri
+  - focal-xena
 
 target_deploy_status:
   ceph-proxy:
@@ -46,9 +33,6 @@ target_deploy_status:
   ceph-radosgw:
     workload-status: waiting
     workload-status-message: "Incomplete relations: mon"
-  cinder-ceph:
-    workload-status: waiting
-    workload-status-message: "Incomplete relations: ceph"
   keystone:
     workload-status: active
     workload-status-message: "Unit is ready"
@@ -64,8 +48,6 @@ target_deploy_status:
 
 tests_options:
   force_deploy:
-    - hirsute-wallaby
-    - hirsute-wallaby-ec
     - impish-xena
     - impish-xena-ec
     - jammy-yoga

@@ -1,72 +1,50 @@
 - project:
     templates:
-      - charm-yoga-unit-jobs
+      - charm-unit-jobs-py38
+      - charm-unit-jobs-py39
       - charm-yoga-functional-jobs
       - charm-xena-functional-jobs
-      - charm-wallaby-functional-jobs
-      - charm-victoria-functional-jobs
-      - charm-ussuri-functional-jobs
-      - charm-stein-functional-jobs
-      - charm-queens-functional-jobs
     check:
       jobs:
-      - focal-ussuri-ec
-      - focal-victoria-ec
-      - focal-wallaby-ec
       - focal-xena-ec
       - focal-yoga-ec:
           voting: false
-      - hirsute-wallaby-ec
       - impish-xena-ec:
           voting: false
       - jammy-yoga-ec:
           voting: false
-- job:
-    name: focal-ussuri-ec
-    parent: func-target
-    dependencies: &smoke-jobs
-      - bionic-ussuri
     vars:
-      tox_extra_args: erasure-coded:focal-ussuri-ec
-- job:
-    name: focal-victoria-ec
-    parent: func-target
-    dependencies: *smoke-jobs
-    vars:
-      tox_extra_args: erasure-coded:focal-victoria-ec
-- job:
-    name: focal-wallaby-ec
-    parent: func-target
-    dependencies: *smoke-jobs
-    vars:
-      tox_extra_args: erasure-coded:focal-wallaby-ec
+      needs_charm_build: true
+      charm_build_name: ceph-proxy
+      build_type: charmcraft
 - job:
     name: focal-xena-ec
     parent: func-target
-    dependencies: *smoke-jobs
+    dependencies:
+      - osci-lint
+      - charm-build
+      - tox-py38
+      - tox-py39
     vars:
       tox_extra_args: erasure-coded:focal-xena-ec
 - job:
     name: focal-yoga-ec
     parent: func-target
-    dependencies: *smoke-jobs
+    dependencies:
+      - focal-xena-ec
     vars:
       tox_extra_args: erasure-coded:focal-yoga-ec
 - job:
-    name: hirsute-wallaby-ec
-    parent: func-target
-    dependencies: *smoke-jobs
-    vars:
-      tox_extra_args: erasure-coded:hirsute-wallaby-ec
-- job:
     name: impish-xena-ec
     parent: func-target
-    dependencies: *smoke-jobs
+    dependencies:
+      - focal-xena-ec
     vars:
       tox_extra_args: erasure-coded:impish-xena-ec
 - job:
     name: jammy-yoga-ec
     parent: func-target
-    dependencies: *smoke-jobs
+    dependencies:
+      - focal-xena-ec
     vars:
       tox_extra_args: erasure-coded:jammy-yoga-ec
