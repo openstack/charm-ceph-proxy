@@ -1,50 +1,31 @@
 - project:
     templates:
-      - charm-unit-jobs
+      - charm-unit-jobs-py38
     check:
       jobs:
-      - bionic-queens # luminous
-      - bionic-stein
-      - bionic-train
-      - bionic-ussuri
       - focal-ussuri
       - focal-ussuri-ec
-      - focal-victoria
-      - focal-victoria-ec
       - focal-wallaby
       - focal-wallaby-ec
-      - groovy-victoria
-      - groovy-victoria-ec
-      - hirsute-wallaby
-      - hirsute-wallaby-ec
+    vars:
+      needs_charm_build: true
+      charm_build_name: ceph-proxy
+      build_type: charmcraft
 - job:
     name: focal-ussuri-ec
     parent: func-target
-    dependencies: &smoke-jobs
-      - bionic-ussuri
+    dependencies:
+      - charm-build
+      - tox-py38
+      - osci-lint
     vars:
       tox_extra_args: erasure-coded:focal-ussuri-ec
 - job:
-    name: focal-victoria-ec
-    parent: func-target
-    dependencies: *smoke-jobs
-    vars:
-      tox_extra_args: erasure-coded:focal-victoria-ec
-- job:
     name: focal-wallaby-ec
     parent: func-target
-    dependencies: *smoke-jobs
+    dependencies:
+      - charm-build
+      - tox-py38
+      - osci-lint
     vars:
       tox_extra_args: erasure-coded:focal-wallaby-ec
-- job:
-    name: groovy-victoria-ec
-    parent: func-target
-    dependencies: *smoke-jobs
-    vars:
-      tox_extra_args: erasure-coded:groovy-victoria-ec
-- job:
-    name: hirsute-wallaby-ec
-    parent: func-target
-    dependencies: *smoke-jobs
-    vars:
-      tox_extra_args: erasure-coded:hirsute-wallaby-ec

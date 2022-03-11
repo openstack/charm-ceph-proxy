@@ -7,3 +7,4 @@ bin
 .unit-state.db
 .stestr
 __pycache__
+*.charm
