@@ -14,8 +14,6 @@ tests:
 gate_bundles:
   - focal-xena
   - erasure-coded: focal-xena-ec
-  - impish-xena
-  - erasure-coded: impish-xena-ec
 
 dev_bundles:
   - focal-yoga
@@ -48,7 +46,5 @@ target_deploy_status:
 
 tests_options:
   force_deploy:
-    - impish-xena
-    - impish-xena-ec
     - jammy-yoga
     - jammy-yoga-ec
