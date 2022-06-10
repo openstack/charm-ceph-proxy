@@ -10,7 +10,6 @@ tags:
 - file-servers
 - misc
 series:
-- focal
 - jammy
 extra-bindings:
   public:

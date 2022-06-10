@@ -1,7 +1,7 @@
 variables:
-  openstack-origin: &openstack-origin cloud:focal-yoga
+  openstack-origin: &openstack-origin distro
 
-series: focal
+series: jammy
 
 comment:
 - 'machines section to decide order of deployment. database sooner = faster'
@@ -62,7 +62,7 @@ applications:
       - '3'
       - '4'
       - '5'
-    channel: quincy/edge
+    channel: latest/edge
 
   ceph-osd:
     charm: ch:ceph-osd
@@ -78,7 +78,7 @@ applications:
       - '16'
       - '17'
       - '18'
-    channel: quincy/edge
+    channel: latest/edge
 
   ceph-proxy:
     charm: ../../ceph-proxy.charm
@@ -98,7 +98,7 @@ applications:
       ec-profile-m: 2
     to:
       - '10'
-    channel: quincy/edge
+    channel: latest/edge
 
   cinder:
     charm: ch:cinder
@@ -112,7 +112,7 @@ applications:
     constraints: mem=2048
     to:
       - '11'
-    channel: yoga/edge
+    channel: latest/edge
 
   cinder-ceph:
     charm: ch:cinder-ceph
@@ -123,7 +123,7 @@ applications:
       ec-profile-m: 2
       ec-profile-plugin: lrc
       ec-profile-locality: 3
-    channel: yoga/edge
+    channel: latest/edge
 
   keystone:
     charm: ch:keystone
@@ -134,7 +134,7 @@ applications:
     constraints: mem=1024
     to:
       - '12'
-    channel: yoga/edge
+    channel: latest/edge
 
   rabbitmq-server:
     charm: ch:rabbitmq-server
@@ -157,7 +157,7 @@ applications:
       ec-profile-plugin: jerasure
     to:
       - '14'
-    channel: yoga/edge
+    channel: latest/edge
 
   nova-compute:
     charm: ch:nova-compute
@@ -171,7 +171,7 @@ applications:
       libvirt-image-backend: rbd
     to:
       - '15'
-    channel: yoga/edge
+    channel: latest/edge
 
 
 relations:

@@ -1,39 +1,31 @@
 - project:
     templates:
-      - charm-unit-jobs-py38
-      - charm-unit-jobs-py39
-      - charm-yoga-functional-jobs
-      - charm-xena-functional-jobs
+      - charm-unit-jobs-py310
+      - charm-zed-functional-jobs
     check:
       jobs:
-      - focal-xena-ec
-      - focal-yoga-ec
       - jammy-yoga-ec
+      - kinetic-zed-ec:
+          voting: false
     vars:
       needs_charm_build: true
       charm_build_name: ceph-proxy
       build_type: charmcraft
-- job:
-    name: focal-xena-ec
-    parent: func-target
-    dependencies:
-      - osci-lint
-      - charm-build
-      - tox-py38
-      - tox-py39
-    vars:
-      tox_extra_args: erasure-coded:focal-xena-ec
-- job:
-    name: focal-yoga-ec
-    parent: func-target
-    dependencies:
-      - focal-xena-ec
-    vars:
-      tox_extra_args: erasure-coded:focal-yoga-ec
+      charmcraft_channel: 2.0/stable
 - job:
     name: jammy-yoga-ec
     parent: func-target
     dependencies:
-      - focal-xena-ec
+      - osci-lint
+      - charm-build
+      - name: tox-py310
+        soft: true
     vars:
       tox_extra_args: erasure-coded:jammy-yoga-ec
+- job:
+    name: kinetic-zed-ec
+    parent: func-target
+    dependencies:
+      - jammy-yoga-ec
+    vars:
+      tox_extra_args: erasure-coded:kinetic-zed-ec

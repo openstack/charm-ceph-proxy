@@ -12,15 +12,19 @@ tests:
     - zaza.openstack.charm_tests.ceph.tests.CheckPoolTypes
 
 gate_bundles:
-  - focal-xena
-  - erasure-coded: focal-xena-ec
-  - focal-yoga
-  - erasure-coded: focal-yoga-ec
   - jammy-yoga
   - erasure-coded: jammy-yoga-ec
 
+dev_bundles:
+  - jammy-yoga
+  - erasure-coded: jammy-yoga-ec
+  - jammy-zed
+  - erasure-coded: jammy-zed-ec
+  - kinetic-zed
+  - erasure-coded: kinetic-zed-ec
+
 smoke_bundles:
-  - focal-xena
+  - jammy-yoga
 
 target_deploy_status:
   ceph-proxy:
@@ -41,3 +45,8 @@ target_deploy_status:
   glance:
     workload-status: waiting
     workload-status-message: "Incomplete relations: storage-backend"
+
+tests_options:
+  force_deploy:
+    - kinetic-zed
+    - kinetic-zed-ec
