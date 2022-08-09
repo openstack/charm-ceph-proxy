@@ -14,8 +14,6 @@ tests:
 gate_bundles:
   - focal-xena
   - erasure-coded: focal-xena-ec
-
-dev_bundles:
   - focal-yoga
   - erasure-coded: focal-yoga-ec
   - jammy-yoga
@@ -43,8 +41,3 @@ target_deploy_status:
   glance:
     workload-status: waiting
     workload-status-message: "Incomplete relations: storage-backend"
-
-tests_options:
-  force_deploy:
-    - jammy-yoga
-    - jammy-yoga-ec
