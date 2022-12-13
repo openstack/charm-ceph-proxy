@@ -26,7 +26,7 @@
       - name: tox-py310
         soft: true
     vars:
-      tox_extra_args: -- erasure-coded:jammy-yoga-ec
+      tox_extra_args: '-- erasure-coded:jammy-yoga-ec'
 - job:
     name: kinetic-zed-ec
     parent: func-target
