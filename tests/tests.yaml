@@ -19,9 +19,13 @@ dev_bundles:
   - jammy-yoga
   - erasure-coded: jammy-yoga-ec
   - jammy-zed
+  - lunar-antelope
   - erasure-coded: jammy-zed-ec
+  - erasure-coded: lunar-antelope-ec
   - kinetic-zed
+  - jammy-antelope
   - erasure-coded: kinetic-zed-ec
+  - erasure-coded: jammy-antelope-ec
 
 smoke_bundles:
   - jammy-yoga
@@ -49,4 +53,6 @@ target_deploy_status:
 tests_options:
   force_deploy:
     - kinetic-zed
+    - jammy-antelope
     - kinetic-zed-ec
+    - jammy-antelope-ec

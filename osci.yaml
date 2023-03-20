@@ -7,7 +7,13 @@
     check:
       jobs:
       - jammy-yoga-ec
+      - jammy-antelope:
+          voting: true
       - kinetic-zed-ec:
+          voting: false
+      - lunar-antelope-ec:
+          voting: false
+      - lunar-antelope:
           voting: false
     vars:
       needs_charm_build: true
@@ -31,3 +37,10 @@
       - jammy-yoga-ec
     vars:
       tox_extra_args: erasure-coded:kinetic-zed-ec
+- job:
+    name: lunar-antelope-ec
+    parent: func-target
+    dependencies:
+      - jammy-yoga-ec
+    vars:
+      tox_extra_args: erasure-coded:lunar-antelope-ec
