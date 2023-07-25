@@ -1,16 +1,14 @@
 - project:
     templates:
       - charm-unit-jobs-py38
-      - charm-unit-jobs-py39
       - charm-unit-jobs-py310
-      - charm-zed-functional-jobs
     check:
       jobs:
+      - jammy-yoga
       - jammy-yoga-ec
+      - jammy-zed
       - jammy-antelope:
           voting: true
-      - kinetic-zed-ec:
-          voting: false
       - lunar-antelope-ec:
           voting: false
       - lunar-antelope:
@@ -30,13 +28,6 @@
         soft: true
     vars:
       tox_extra_args: erasure-coded:jammy-yoga-ec
-- job:
-    name: kinetic-zed-ec
-    parent: func-target
-    dependencies:
-      - jammy-yoga-ec
-    vars:
-      tox_extra_args: erasure-coded:kinetic-zed-ec
 - job:
     name: lunar-antelope-ec
     parent: func-target
