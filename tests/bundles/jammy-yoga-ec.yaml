@@ -33,13 +33,13 @@ applications:
 
   cinder-mysql-router:
     charm: ch:mysql-router
-    channel: latest/edge
+    channel: 8.0/edge
   glance-mysql-router:
     charm: ch:mysql-router
-    channel: latest/edge
+    channel: 8.0/edge
   keystone-mysql-router:
     charm: ch:mysql-router
-    channel: latest/edge
+    channel: 8.0/edge
 
   mysql-innodb-cluster:
     charm: ch:mysql-innodb-cluster
@@ -48,7 +48,7 @@ applications:
       - '0'
       - '1'
       - '2'
-    channel: latest/edge
+    channel: 8.0/edge
 
   ceph-mon:
     charm: ch:ceph-mon
@@ -60,7 +60,7 @@ applications:
       - '3'
       - '4'
       - '5'
-    channel: latest/edge
+    channel: quincy/edge
 
   ceph-osd:
     charm: ch:ceph-osd
@@ -76,7 +76,7 @@ applications:
       - '16'
       - '17'
       - '18'
-    channel: latest/edge
+    channel: quincy/edge
 
   ceph-proxy:
     charm: ../../ceph-proxy.charm
@@ -96,7 +96,7 @@ applications:
       ec-profile-m: 2
     to:
       - '10'
-    channel: latest/edge
+    channel: quincy/edge
 
   cinder:
     charm: ch:cinder
@@ -110,7 +110,7 @@ applications:
     constraints: mem=2048
     to:
       - '11'
-    channel: latest/edge
+    channel: 2023.1/edge
 
   cinder-ceph:
     charm: ch:cinder-ceph
@@ -121,7 +121,7 @@ applications:
       ec-profile-m: 2
       ec-profile-plugin: lrc
       ec-profile-locality: 3
-    channel: latest/edge
+    channel: 2023.1/edge
 
   keystone:
     charm: ch:keystone
@@ -132,7 +132,7 @@ applications:
     constraints: mem=1024
     to:
       - '12'
-    channel: latest/edge
+    channel: 2023.1/edge
 
   rabbitmq-server:
     charm: ch:rabbitmq-server
@@ -140,7 +140,7 @@ applications:
     constraints: mem=1024
     to:
       - '13'
-    channel: latest/edge
+    channel: 3.9/edge
 
   glance:
     charm: ch:glance
@@ -153,7 +153,7 @@ applications:
       ec-profile-plugin: jerasure
     to:
       - '14'
-    channel: latest/edge
+    channel: 2023.1/edge
 
   nova-compute:
     charm: ch:nova-compute
@@ -167,7 +167,7 @@ applications:
       libvirt-image-backend: rbd
     to:
       - '15'
-    channel: latest/edge
+    channel: 2023.1/edge
 
 
 relations:

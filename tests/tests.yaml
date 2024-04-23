@@ -19,10 +19,6 @@ gate_bundles:
 dev_bundles:
   - jammy-yoga
   - erasure-coded: jammy-yoga-ec
-  - lunar-antelope
-  - mantic-bobcat
-  - erasure-coded: lunar-antelope-ec
-  - erasure-coded: mantic-bobcat-ec
   - jammy-antelope
   - jammy-bobcat
   - erasure-coded: jammy-antelope-ec
