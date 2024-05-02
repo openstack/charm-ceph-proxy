@@ -1,7 +1,7 @@
 variables:
-  openstack-origin: &openstack-origin distro
+  openstack-origin: &openstack-origin cloud:jammy-caracal
 
-series: lunar
+series: jammy
 
 comment:
 - 'machines section to decide order of deployment. database sooner = faster'
@@ -33,13 +33,13 @@ applications:
 
   cinder-mysql-router:
     charm: ch:mysql-router
-    channel: latest/edge
+    channel: 8.0/edge
   glance-mysql-router:
     charm: ch:mysql-router
-    channel: latest/edge
+    channel: 8.0/edge
   keystone-mysql-router:
     charm: ch:mysql-router
-    channel: latest/edge
+    channel: 8.0/edge
 
   mysql-innodb-cluster:
     charm: ch:mysql-innodb-cluster
@@ -48,7 +48,7 @@ applications:
       - '0'
       - '1'
       - '2'
-    channel: latest/edge
+    channel: 8.0/edge
 
   ceph-mon:
     charm: ch:ceph-mon
@@ -64,7 +64,7 @@ applications:
 
   ceph-osd:
     charm: ch:ceph-osd
-    num_units: 6
+    num_units: 3
     storage:
       osd-devices: 10G
     options:
@@ -73,9 +73,6 @@ applications:
       - '6'
       - '7'
       - '8'
-      - '16'
-      - '17'
-      - '18'
     channel: latest/edge
 
   ceph-proxy:
@@ -91,9 +88,6 @@ applications:
     num_units: 1
     options:
       source: *openstack-origin
-      pool-type: erasure-coded
-      ec-profile-k: 4
-      ec-profile-m: 2
     to:
       - '10'
     channel: latest/edge
@@ -116,11 +110,6 @@ applications:
     charm: ch:cinder-ceph
     options:
       restrict-ceph-pools: True
-      pool-type: erasure-coded
-      ec-profile-k: 4
-      ec-profile-m: 2
-      ec-profile-plugin: lrc
-      ec-profile-locality: 3
     channel: latest/edge
 
   keystone:
@@ -140,17 +129,13 @@ applications:
     constraints: mem=1024
     to:
       - '13'
-    channel: latest/edge
+    channel: 3.9/edge
 
   glance:
     charm: ch:glance
     num_units: 1
     options:
       openstack-origin: *openstack-origin
-      pool-type: erasure-coded
-      ec-profile-k: 4
-      ec-profile-m: 2
-      ec-profile-plugin: jerasure
     to:
       - '14'
     channel: latest/edge
@@ -160,15 +145,23 @@ applications:
     num_units: 1
     options:
       openstack-origin: *openstack-origin
-      pool-type: erasure-coded
-      ec-profile-k: 4
-      ec-profile-m: 2
-      ec-profile-plugin: isa
-      libvirt-image-backend: rbd
     to:
       - '15'
     channel: latest/edge
 
+  ubuntu: # used to test mounts
+    charm: ch:ubuntu
+    num_units: 2
+    to:
+      - '16'
+      - '17'
+
+  ceph-fs:
+    charm: ch:ceph-fs
+    channel: latest/edge
+    num_units: 1
+    to:
+      - '18'
 
 relations:
 
@@ -211,14 +204,11 @@ relations:
   - - 'glance-mysql-router:db-router'
     - 'mysql-innodb-cluster:db-router'
 
-  - - 'glance:ceph'
-    - 'ceph-proxy:client'
-
   - - 'nova-compute:ceph-access'
     - 'cinder-ceph:ceph-access'
 
   - - 'nova-compute:amqp'
     - 'rabbitmq-server:amqp'
 
-  - - 'nova-compute:ceph'
-    - 'ceph-proxy:client'
+  - - 'ceph-proxy:mds'
+    - 'ceph-fs:ceph-mds'
